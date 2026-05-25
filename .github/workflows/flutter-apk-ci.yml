@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-apk:
@@ -56,6 +56,19 @@ jobs:
           mkdir -p dist
           cp build/app/outputs/flutter-apk/app-release.apk dist/app-release.apk
           ls -lh dist/
+
+      - name: Auto-commit APK artifact
+        if: github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dist/app-release.apk
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(ci): auto-update APK [skip ci]"
+            git push origin "HEAD:${{ github.ref_name }}"
+          else
+            echo "No APK changes to commit"
+          fi
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
