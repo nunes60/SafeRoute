@@ -61,5 +61,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ARTIFACT_NAME }}
-          path: dist/*.apk
+          path: dist/app-release.apk
           if-no-files-found: error
