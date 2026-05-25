@@ -62,15 +62,21 @@ jobs:
           ls -lh dist/
 
       - name: Auto-commit APK artifact
-        if: github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        if: github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add dist/app-release.apk
           if ! git diff --cached --quiet; then
             git commit -m "chore(ci): auto-update APK [skip ci]"
-            git pull --rebase origin "${{ github.ref_name }}"
-            git push origin "HEAD:${{ github.ref_name }}"
+            if ! git pull --rebase origin "${{ github.ref_name }}"; then
+              echo "Could not rebase APK commit onto the latest branch state. Re-run the workflow after resolving the conflict."
+              exit 1
+            fi
+            if ! git push origin "HEAD:${{ github.ref_name }}"; then
+              echo "Could not push APK commit because the branch changed. Re-run the workflow to publish the latest APK."
+              exit 1
+            fi
           else
             echo "No APK changes to commit"
           fi
