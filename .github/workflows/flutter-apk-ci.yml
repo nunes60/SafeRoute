@@ -38,12 +38,14 @@ jobs:
             echo "Could not read project name from pubspec.yaml"
             exit 1
           fi
+          ARTIFACT_NAME="$(printf '%s-release-apk' "$PROJECT_NAME" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9_-' '-')"
           echo "PROJECT_NAME=$PROJECT_NAME" >> "$GITHUB_ENV"
+          echo "ARTIFACT_NAME=$ARTIFACT_NAME" >> "$GITHUB_ENV"
 
       - name: Ensure Android project exists
         run: |
           if [ ! -d android ]; then
-            flutter create --platforms=android --project-name "$PROJECT_NAME" .
+            flutter create --platforms=android .
           fi
 
       - name: Build release APK
@@ -52,5 +54,5 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.PROJECT_NAME }}-release-apk
+          name: ${{ env.ARTIFACT_NAME }}
           path: build/app/outputs/flutter-apk/app-release.apk
