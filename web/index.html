@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <base href="/">
+  <base href="./">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
@@ -17,9 +17,31 @@
   <link rel="icon" type="image/png" href="favicon.png"/>
 
   <title>SafeRoute</title>
-  <link rel="manifest" href="manifest.json">
+  <script>
+    if (window.location.protocol !== 'file:') {
+      const manifest = document.createElement('link');
+      manifest.rel = 'manifest';
+      manifest.href = 'manifest.json';
+      document.head.appendChild(manifest);
+    }
+  </script>
 </head>
 <body>
-  <script src="flutter_bootstrap.js" async></script>
+  <script>
+    if (window.location.protocol === 'file:') {
+      document.body.innerHTML = `
+        <main style="font-family: Arial, sans-serif; max-width: 720px; margin: 48px auto; padding: 0 24px; line-height: 1.5;">
+          <h1>SafeRoute precisa ser executado por HTTP</h1>
+          <p>O Flutter Web não funciona ao abrir o <code>index.html</code> diretamente pelo caminho <code>file://</code>, porque o navegador bloqueia o service worker, o manifest e os arquivos em <code>assets/</code>.</p>
+          <p>Para rodar localmente no Windows, volte para a pasta principal do projeto e execute o arquivo <strong>run_web_local.bat</strong>.</p>
+        </main>
+      `;
+    } else {
+      const bootstrap = document.createElement('script');
+      bootstrap.src = 'flutter_bootstrap.js';
+      bootstrap.async = true;
+      document.body.appendChild(bootstrap);
+    }
+  </script>
 </body>
 </html>
