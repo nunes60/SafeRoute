@@ -54,7 +54,7 @@ jobs:
       - name: Prepare APK artifact
         run: |
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk "dist/${PROJECT_NAME}-release.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk dist/app-release.apk
           ls -lh dist/
 
       - name: Upload APK artifact
