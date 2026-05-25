@@ -66,16 +66,17 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          ORIGINAL_HEAD="$(git rev-parse HEAD)"
           git add dist/app-release.apk
           if ! git diff --cached --quiet; then
             git commit -m "chore(ci): auto-update APK [skip ci]"
             git fetch origin "${{ github.ref_name }}"
-            if [ "$(git rev-parse HEAD^)" != "$(git rev-parse FETCH_HEAD)" ]; then
+            if [ "$ORIGINAL_HEAD" != "$(git rev-parse FETCH_HEAD)" ]; then
               echo "Branch changed after checkout; skipping this APK commit so the latest workflow run can publish the current APK."
               exit 0
             fi
             if ! git push origin "HEAD:${{ github.ref_name }}"; then
-              echo "Could not push APK commit because the branch changed. Re-run the workflow to publish the latest APK."
+              echo "Could not push APK commit because the branch changed; the newer workflow run should publish the latest APK."
               exit 1
             fi
           else
