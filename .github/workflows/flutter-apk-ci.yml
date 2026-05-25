@@ -31,10 +31,18 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Read Flutter project metadata
+        run: |
+          PROJECT_NAME="$(awk '/^name:/ { print $2; exit }' pubspec.yaml)"
+          if [ -z "$PROJECT_NAME" ]; then
+            echo "Could not read project name from pubspec.yaml"
+            exit 1
+          fi
+          echo "PROJECT_NAME=$PROJECT_NAME" >> "$GITHUB_ENV"
+
       - name: Ensure Android project exists
         run: |
           if [ ! -d android ]; then
-            PROJECT_NAME="$(awk '/^name:/ { print $2; exit }' pubspec.yaml)"
             flutter create --platforms=android --project-name "$PROJECT_NAME" .
           fi
 
@@ -44,5 +52,5 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: safe-route-release-apk
+          name: ${{ env.PROJECT_NAME }}-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
