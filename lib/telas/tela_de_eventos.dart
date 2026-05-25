@@ -120,7 +120,7 @@ class EventCard extends StatelessWidget {
             children: [
               Container(
                 width: 5,
-                color: accentColor.withOpacity(0.5),
+                color: accentColor.withValues(alpha: 0.5),
               ),
               Expanded(
                 child: Padding(
