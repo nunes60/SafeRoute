@@ -37,9 +37,6 @@ jobs:
             flutter create --platforms=android --project-name safe_route .
           fi
 
-      - name: Refresh dependencies
-        run: flutter pub get
-
       - name: Build release APK
         run: flutter build apk --release
 
