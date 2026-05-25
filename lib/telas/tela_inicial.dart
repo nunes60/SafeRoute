@@ -8,7 +8,6 @@ class WelcomeScreen extends StatelessWidget {
     const Color greenPrimary = Color(0xFF386A3F);
     const Color cardBackground = Color(0xFFEDF2EC);
     const Color textDark = Colors.black87;
-    const Color textMuted = Colors.black54;
 
     return Scaffold(
       appBar: AppBar(
@@ -21,7 +20,7 @@ class WelcomeScreen extends StatelessWidget {
           },
         ),
       ),
-      body: SingleChildScrollView(
+                color: accentColor.withValues(alpha: 0.5),
         padding: const EdgeInsets.symmetric(horizontal: 20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
