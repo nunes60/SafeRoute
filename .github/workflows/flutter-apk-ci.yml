@@ -70,7 +70,10 @@ jobs:
           if ! git diff --cached --quiet; then
             ORIGINAL_HEAD="$(git rev-parse HEAD)"
             git commit -m "chore(ci): auto-update APK [skip ci]"
-            git fetch origin "${{ github.ref_name }}"
+            if ! git fetch origin "${{ github.ref_name }}"; then
+              echo "Could not verify the latest branch state before publishing the APK."
+              exit 1
+            fi
             if [ "$ORIGINAL_HEAD" != "$(git rev-parse FETCH_HEAD)" ]; then
               echo "Branch changed after checkout; skipping this APK commit so the latest workflow run can publish the current APK."
               exit 0
