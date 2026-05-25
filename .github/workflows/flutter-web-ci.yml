@@ -31,7 +31,6 @@ jobs:
         run: flutter build web --release
 
       - name: Upload web build artifact
-        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: flutter-web-build
