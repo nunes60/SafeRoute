@@ -51,8 +51,15 @@ jobs:
       - name: Build release APK
         run: flutter build apk --release
 
+      - name: Prepare APK artifact
+        run: |
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk dist/app-release.apk
+          ls -lh dist/
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ARTIFACT_NAME }}
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: dist/app-release.apk
+          if-no-files-found: error
