@@ -71,7 +71,7 @@ jobs:
             ORIGINAL_HEAD="$(git rev-parse HEAD)"
             git commit -m "chore(ci): auto-update APK [skip ci]"
             if ! git fetch origin "${{ github.ref_name }}"; then
-              echo "Could not fetch the latest branch state to verify conditions for pushing the APK commit."
+              echo "Could not fetch ${{ github.ref_name }} to verify conditions for pushing the APK commit."
               exit 1
             fi
             if [ "$ORIGINAL_HEAD" != "$(git rev-parse FETCH_HEAD)" ]; then
@@ -79,8 +79,12 @@ jobs:
               exit 0
             fi
             if ! git push origin "HEAD:${{ github.ref_name }}"; then
-              echo "Could not push APK commit because the branch changed; the newer workflow run should publish the latest APK."
-              exit 0
+              if git fetch origin "${{ github.ref_name }}" && [ "$ORIGINAL_HEAD" != "$(git rev-parse FETCH_HEAD)" ]; then
+                echo "Could not push APK commit because the branch changed; the newer workflow run should publish the latest APK."
+                exit 0
+              fi
+              echo "Could not push APK commit to ${{ github.ref_name }}."
+              exit 1
             fi
           else
             echo "No APK changes to commit"
