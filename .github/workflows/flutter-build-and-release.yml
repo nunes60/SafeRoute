@@ -298,6 +298,6 @@ jobs:
           artifactErrorsFailBuild: true
           artifacts: release-assets/*
           generateReleaseNotes: true
-          name: Release ${{ steps.package_artifacts.outputs.release_tag || steps.package_artifacts.outputs.app_version }}
+          name: ${{ steps.package_artifacts.outputs.release_tag || steps.package_artifacts.outputs.app_version }}
           replacesArtifacts: true
           tag: ${{ steps.package_artifacts.outputs.release_tag || github.ref_name }}
