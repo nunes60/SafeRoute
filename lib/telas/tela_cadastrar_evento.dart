@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../core/app_styles.dart';
+import '../services/api_service.dart';
+import '../services/session_service.dart';
+
 class CadastrarEventoScreen extends StatefulWidget {
   const CadastrarEventoScreen({super.key});
 
@@ -10,128 +14,173 @@ class CadastrarEventoScreen extends StatefulWidget {
 class _CadastrarEventoScreenState extends State<CadastrarEventoScreen> {
   final TextEditingController _disciplinaController = TextEditingController();
   final TextEditingController _atividadeController = TextEditingController();
-  DateTime _selectedDate = DateTime(2025, 8, 17);
+  final _apiService = ApiService();
+
+  DateTime _selectedDate = DateTime.now();
+  bool _isSaving = false;
+
+  String _formatDateBr(DateTime date) {
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    return '$day/$month/${date.year}';
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+    );
+
+    if (picked == null) return;
+    setState(() {
+      _selectedDate = picked;
+    });
+  }
+
+  @override
+  void dispose() {
+    _disciplinaController.dispose();
+    _atividadeController.dispose();
+    super.dispose();
+  }
+
+  String _toApiDate(DateTime date) {
+    final year = date.year.toString().padLeft(4, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    return '$year-$month-$day';
+  }
+
+  Future<void> _saveEvent() async {
+    final nomeDisciplina = _disciplinaController.text.trim();
+    final descricaoAtividade = _atividadeController.text.trim();
+
+    if (nomeDisciplina.isEmpty || descricaoAtividade.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Preencha todos os campos do evento.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      final usuarioId = await SessionService.getUserId();
+      if (usuarioId == null) {
+        throw ApiException('Sessão não encontrada. Faça login novamente.');
+      }
+
+      await _apiService.salvarEvento(
+        usuarioId: usuarioId,
+        nomeDisciplina: nomeDisciplina,
+        descricaoAtividade: descricaoAtividade,
+        dataEntrega: _toApiDate(_selectedDate),
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Evento cadastrado com sucesso.')),
+      );
+      Navigator.pop(context, true);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erro inesperado ao salvar o evento.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    const Color greenPrimary = Color(0xFF386A3F);
-
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: greenPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
+        // Barra superior com título da tela de cadastro.
         title: const Text(
-          'CADASTRAR EVENTO',
-          style: TextStyle(
-            color: greenPrimary,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
+          'Cadastrar evento',
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
+        padding: AppStyles.pagePadding,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Campo para informar a disciplina.
             _buildInputField(
               label: 'Nome da Disciplina',
               hint: 'Digite a disciplina aqui',
               controller: _disciplinaController,
             ),
-            const SizedBox(height: 20),
+            AppStyles.gap20,
 
+            // Campo para informar a descrição da atividade.
             _buildInputField(
               label: 'Descrição da Atividade',
               hint: 'Digite uma rápida descrição da atividade',
               controller: _atividadeController,
             ),
-            const SizedBox(height: 20),
+            AppStyles.gap20,
 
-            const Text(
-              'Date',
-              style: TextStyle(
-                color: greenPrimary,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
+            // Rótulo da seção de seleção de data.
+            Text(
+              'Data de entrega',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            AppStyles.gap8,
+            // Campo somente leitura que abre o seletor de data.
+            TextFormField(
+              readOnly: true,
+              onTap: _pickDate,
+              decoration: InputDecoration(
+                hintText: 'Selecione a data',
+                suffixIcon: const Icon(Icons.calendar_today),
+                border: const OutlineInputBorder(),
+                filled: true,
+                labelText: _formatDateBr(_selectedDate),
               ),
             ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE2E8E0),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.day.toString().padLeft(2, '0')}/${_selectedDate.year}',
-                    style: const TextStyle(fontSize: 16),
+            AppStyles.gap24,
+            // Ações de cancelar ou salvar o evento informado.
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _isSaving
+                        ? null
+                        : () {
+                            Navigator.pop(context);
+                          },
+                    child: const Text('Cancelar'),
                   ),
-                  const Icon(Icons.calendar_month, color: greenPrimary),
-                ],
-              ),
-            ),
-            const Text(
-              'MM/DD/YYYY',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-            const SizedBox(height: 20),
-
-            Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F4EE),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  Theme(
-                    data: Theme.of(context).copyWith(
-                      colorScheme: const ColorScheme.light(
-                        primary: greenPrimary, 
-                        onPrimary: Colors.white,
-                        onSurface: Colors.black,
-                      ),
-                    ),
-                    child: CalendarDatePicker(
-                      initialDate: _selectedDate,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime(2030),
-                      onDateChanged: (date) {
-                        setState(() {
-                          _selectedDate = date;
-                        });
-                      },
-                    ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: _isSaving ? null : _saveEvent,
+                    child: const Text('Salvar'),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.only(right: 16, bottom: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        TextButton(
-                          onPressed: () {},
-                          child: const Text('Cancel',
-                              style: TextStyle(color: greenPrimary, fontWeight: FontWeight.bold)),
-                        ),
-                        const SizedBox(width: 8),
-                        TextButton(
-                          onPressed: () {},
-                          child: const Text('OK',
-                              style: TextStyle(color: greenPrimary, fontWeight: FontWeight.bold)),
-                        ),
-                      ],
-                    ),
-                  )
-                ],
-              ),
+                ),
+              ],
             ),
+            if (_isSaving) ...[
+              AppStyles.gap16,
+              // Indicador exibido durante o envio do evento para a API.
+              const Center(child: CircularProgressIndicator()),
+            ],
           ],
         ),
       ),
@@ -143,35 +192,25 @@ class _CadastrarEventoScreenState extends State<CadastrarEventoScreen> {
     required String hint,
     required TextEditingController controller,
   }) {
-    const Color greenPrimary = Color(0xFF386A3F);
-
+    // Componente reutilizável para campos de texto do formulário.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(
-            color: greenPrimary,
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-          ),
+          style: Theme.of(context).textTheme.titleSmall,
         ),
-        const SizedBox(height: 8),
+        AppStyles.gap8,
         TextField(
           controller: controller,
           decoration: InputDecoration(
             hintText: hint,
-            filled: true,
-            fillColor: const Color(0xFFE2E8E0),
             suffixIcon: IconButton(
-              icon: const Icon(Icons.cancel_outlined, color: Colors.grey),
+              icon: const Icon(Icons.clear),
               onPressed: () => controller.clear(),
             ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide.none,
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            border: const OutlineInputBorder(),
+            filled: true,
           ),
         ),
       ],

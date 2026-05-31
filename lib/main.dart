@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'services/session_service.dart';
 import 'telas/telas.dart';
 
 void main() {
@@ -21,18 +22,37 @@ class SafeRouteApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        colorSchemeSeed: const Color(0xFF1B5E20),
-        inputDecorationTheme: const InputDecorationTheme(
-          filled: true,
-          border: OutlineInputBorder(),
-        ),
       ),
-      initialRoute: loginRoute,
+      home: const AppStartScreen(),
       routes: {
         loginRoute: (context) => const LoginPage(),
         homeRoute: (context) => const WelcomeScreen(),
         eventsRoute: (context) => const EventListScreen(),
         createEventRoute: (context) => const CadastrarEventoScreen(),
+      },
+    );
+  }
+}
+
+class AppStartScreen extends StatelessWidget {
+  const AppStartScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<bool>(
+      future: SessionService.hasSession(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (snapshot.data == true) {
+          return const WelcomeScreen();
+        }
+
+        return const LoginPage();
       },
     );
   }

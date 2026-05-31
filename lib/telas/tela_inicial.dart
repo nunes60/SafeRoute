@@ -1,117 +1,162 @@
 import 'package:flutter/material.dart';
 
-class WelcomeScreen extends StatelessWidget {
+import '../core/app_styles.dart';
+import '../main.dart';
+import '../models/evento.dart';
+import '../services/api_service.dart';
+import '../services/session_service.dart';
+
+class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    const Color greenPrimary = Color(0xFF386A3F);
-    const Color cardBackground = Color(0xFFEDF2EC);
-    const Color textDark = Colors.black87;
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
+}
 
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  final _apiService = ApiService();
+  late Future<List<Evento>> _highlightsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _highlightsFuture = _loadHighlights();
+  }
+
+  Future<List<Evento>> _loadHighlights() async {
+    final usuarioId = await SessionService.getUserId();
+    if (usuarioId == null) {
+      throw ApiException('Sessão não encontrada. Faça login novamente.');
+    }
+
+    return _apiService.listarEventos(usuarioId: usuarioId, limit: 3);
+  }
+
+  Future<void> _logout() async {
+    await SessionService.clearSession();
+    if (!mounted) return;
+    Navigator.pushNamedAndRemoveUntil(context, loginRoute, (route) => false);
+  }
+
+  String _formatDate(DateTime date) {
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    return '$day/$month/${date.year}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: greenPrimary),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
+        // Barra superior com título e ação de logout.
+        title: const Text('Início'),
+        actions: [
+          IconButton(
+            onPressed: _logout,
+            tooltip: 'Encerrar sessão',
+            icon: const Icon(Icons.logout),
+          ),
+        ],
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+          padding: AppStyles.pagePadding,
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'BEM-VINDO',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: greenPrimary,
-                    letterSpacing: 0.5,
-                  ),
+                // Cabeçalho principal da tela inicial.
+                Text(
+                  'Bem-vindo',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontSize: AppStyles.headerSize,
+                        fontWeight: FontWeight.w600,
+                      ),
                 ),
-                const SizedBox(height: 8),
-                const Text(
+                AppStyles.gap8,
+                Text(
                   'Visualize seus destaques abaixo',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: textDark,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                _buildHighlightCard(
-                  date: 'Até 25/05/2026',
-                  title: 'Programação Mobile',
-                  description: 'Desenvolvimento de 4 telas usando Flutter e estruturação da 1ª tela em código.',
-                  cardColor: cardBackground,
-                  accentColor: greenPrimary,
-                ),
-                const SizedBox(height: 16),
-                _buildHighlightCard(
-                  date: 'Até 29/05/2026',
-                  title: 'Laboratório de Inovação IV',
-                  description: 'Criar o slide para usar no Innova Day, contendo todas as informações essenciais para a equipe.',
-                  cardColor: cardBackground,
-                  accentColor: greenPrimary,
-                ),
-                const SizedBox(height: 16),
-                _buildHighlightCard(
-                  date: 'Até 30/05/2026',
-                  title: 'Governança de TI',
-                  description: 'Responder o questionário completo no Moodle, para não correr riscos.',
-                  cardColor: cardBackground,
-                  accentColor: greenPrimary,
-                ),
-                const SizedBox(height: 32),
-                Center(
-                  child: Column(
-                    children: [
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/events');
-                        },
-                        icon: const Icon(Icons.list, size: 18, color: Colors.white),
-                        label: const Text(
-                          'VER TUDO',
-                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: greenPrimary,
-                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                        ),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontSize: AppStyles.subtitleSize,
                       ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/create-event');
-                        },
-                        icon: const Icon(Icons.add_circle_outline, size: 18, color: Colors.white),
-                        label: const Text(
-                          'ADICIONAR NOVO',
-                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: greenPrimary,
-                          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
-                const SizedBox(height: 24),
+                AppStyles.gap24,
+                // Bloco que carrega os 3 próximos eventos via API.
+                FutureBuilder<List<Evento>>(
+                  future: _highlightsFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState != ConnectionState.done) {
+                      // Estado de carregamento dos destaques.
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    if (snapshot.hasError) {
+                      // Estado de erro com opção de nova tentativa.
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            'Não foi possível carregar os destaques.',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          AppStyles.gap8,
+                          OutlinedButton(
+                            onPressed: () {
+                              setState(() {
+                                _highlightsFuture = _loadHighlights();
+                              });
+                            },
+                            child: const Text('Tentar novamente'),
+                          ),
+                        ],
+                      );
+                    }
+
+                    final events = snapshot.data ?? const [];
+                    if (events.isEmpty) {
+                      // Estado vazio quando não há eventos próximos.
+                      return const Text('Nenhum compromisso próximo encontrado.');
+                    }
+
+                    // Lista visual dos cards de destaque.
+                    return Column(
+                      children: [
+                        for (final event in events)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: _buildHighlightCard(
+                              date: 'Até ${_formatDate(event.dataEntrega)}',
+                              title: event.nomeDisciplina,
+                              description: event.descricaoAtividade,
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+                AppStyles.gap32,
+                // Navega para a listagem completa de eventos.
+                FilledButton.icon(
+                  onPressed: () {
+                    Navigator.pushNamed(context, eventsRoute);
+                  },
+                  icon: const Icon(Icons.list),
+                  label: const Text('Ver tudo'),
+                ),
+                AppStyles.gap12,
+                // Navega para o formulário de cadastro de evento.
+                FilledButton.icon(
+                  onPressed: () async {
+                    await Navigator.pushNamed(context, createEventRoute);
+                    if (!mounted) return;
+                    setState(() {
+                      _highlightsFuture = _loadHighlights();
+                    });
+                  },
+                  icon: const Icon(Icons.add_circle_outline),
+                  label: const Text('Adicionar novo'),
+                ),
+                AppStyles.gap24,
               ],
             ),
           ),
@@ -124,79 +169,24 @@ class WelcomeScreen extends StatelessWidget {
     required String date,
     required String title,
     required String description,
-    required Color cardColor,
-    required Color accentColor,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(
-                width: 5,
-                color: accentColor.withValues(alpha: 0.5),
+    // Card padrão para representar um compromisso em destaque.
+    return Card(
+      child: ListTile(
+        contentPadding: AppStyles.cardPadding,
+        title: Text(
+          title,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontSize: AppStyles.titleSize,
+                fontWeight: FontWeight.w600,
               ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              date,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: accentColor,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              title,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              description,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.black87,
-                                height: 1.3,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Align(
-                        alignment: Alignment.topRight,
-                        child: Icon(
-                          Icons.play_arrow,
-                          color: accentColor,
-                          size: 20,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
         ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text('$date\n$description'),
+        ),
+        isThreeLine: true,
+        trailing: const Icon(Icons.chevron_right),
       ),
     );
   }

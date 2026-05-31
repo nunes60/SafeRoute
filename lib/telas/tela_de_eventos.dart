@@ -1,92 +1,153 @@
 import 'package:flutter/material.dart';
 
-class EventListScreen extends StatelessWidget {
+import '../core/app_styles.dart';
+import '../models/evento.dart';
+import '../services/api_service.dart';
+import '../services/session_service.dart';
+
+class EventListScreen extends StatefulWidget {
   const EventListScreen({super.key});
 
   @override
+  State<EventListScreen> createState() => _EventListScreenState();
+}
+
+class _EventListScreenState extends State<EventListScreen> {
+  final _apiService = ApiService();
+  bool _isLoading = true;
+  String? _error;
+  List<Evento> _events = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEvents();
+  }
+
+  Future<void> _loadEvents() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final usuarioId = await SessionService.getUserId();
+      if (usuarioId == null) {
+        throw ApiException('Sessão não encontrada. Faça login novamente.');
+      }
+
+      final events = await _apiService.listarEventos(usuarioId: usuarioId);
+      if (!mounted) return;
+      setState(() {
+        _events = events;
+        _isLoading = false;
+      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.message;
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Erro ao carregar eventos.';
+        _isLoading = false;
+      });
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    return '$day/$month/${date.year}';
+  }
+
+  @override
   Widget build(BuildContext context) {
-    const Color greenPrimary = Color(0xFF386A3F);
-
-    final List<Map<String, String>> events = [
-      {
-        'date': 'Até 25/05/2026',
-        'title': 'Programação Mobile',
-        'desc': 'Desenvolvimento de 4 telas usando Flutter e estruturação da 1ª tela em código.'
-      },
-      {
-        'date': 'Até 29/05/2026',
-        'title': 'Laboratório de Inovação IV',
-        'desc': 'Criar o slide para usar no Innova Day, contendo todas as informações essenciais para a equipe.'
-      },
-      {
-        'date': 'Até 30/05/2026',
-        'title': 'Governança de TI',
-        'desc': 'Criar o slide para usar no Innova Day, o Moodle, para não correr riscos.'
-      },
-      {
-        'date': 'Até 30/05/2026',
-        'title': 'Governança de TI',
-        'desc': 'Responder o questionário completo no Moodle, para não correr riscos.'
-      },
-      {
-        'date': 'Até 30/05/2026',
-        'title': 'Governança de TI',
-        'desc': 'Responder o questionário completo no Moodle, para não correr riscos.'
-      },
-      {
-        'date': 'Até 30/05/2026',
-        'title': 'Governança de TI',
-        'desc': 'Responder o questionário completo no Moodle, para não correr riscos.'
-      },
-    ];
-
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: greenPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        titleSpacing: 0,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Text(
-              'LISTA DE EVENTOS',
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Text(
-              'Em visão cronológica',
-              style: TextStyle(
-                color: Colors.grey,
-                fontSize: 14,
-                fontWeight: FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
+        // Barra superior da tela com o título da listagem.
+        title: const Text('Lista de eventos'),
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16.0),
-        itemCount: events.length,
-        itemBuilder: (context, index) {
-          final event = events[index];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 16.0),
+      // Corpo principal com estados de carregamento, erro, vazio e lista.
+      body: _buildBody(),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_isLoading) {
+      // Exibido enquanto os eventos estão sendo buscados na API.
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_error != null) {
+      // Exibido quando ocorre falha na leitura de eventos.
+      return Center(
+        child: Padding(
+          padding: AppStyles.pagePadding,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(_error!, textAlign: TextAlign.center),
+              AppStyles.gap12,
+              OutlinedButton(
+                onPressed: _loadEvents,
+                child: const Text('Tentar novamente'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_events.isEmpty) {
+      // Exibido quando o usuário ainda não possui eventos cadastrados.
+      return const Center(
+        child: Text('Nenhum evento cadastrado.'),
+      );
+    }
+
+    // Lista completa de eventos em ordem retornada pela API.
+    return ListView.builder(
+      padding: AppStyles.listPadding,
+      itemCount: _events.length,
+      itemBuilder: (context, index) {
+        final event = _events[index];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          // Permite gesto de swipe para remover o item da visualização.
+          child: Dismissible(
+            key: ValueKey<int>(event.id),
+            direction: DismissDirection.startToEnd,
+            background: Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.errorContainer,
+                borderRadius: BorderRadius.circular(AppStyles.cardRadius),
+              ),
+              alignment: Alignment.centerLeft,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Icon(
+                Icons.delete,
+                color: Theme.of(context).colorScheme.onErrorContainer,
+              ),
+            ),
+            onDismissed: (_) {
+              setState(() {
+                _events = List<Evento>.from(_events)..removeAt(index);
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Evento removido da lista.')),
+              );
+            },
             child: EventCard(
-              date: event['date']!,
-              title: event['title']!,
-              description: event['desc']!,
-              accentColor: greenPrimary,
+              date: 'Até ${_formatDate(event.dataEntrega)}',
+              title: event.nomeDisciplina,
+              description: event.descricaoAtividade,
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }
@@ -95,88 +156,33 @@ class EventCard extends StatelessWidget {
   final String date;
   final String title;
   final String description;
-  final Color accentColor;
 
   const EventCard({
     super.key,
     required this.date,
     required this.title,
     required this.description,
-    required this.accentColor,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFEDF2EC), 
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(
-                width: 5,
-                color: accentColor.withValues(alpha: 0.5),
+    // Card padrão usado para apresentar cada evento da lista.
+    return Card(
+      child: ListTile(
+        contentPadding: AppStyles.cardPadding,
+        title: Text(
+          title,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontSize: AppStyles.titleSize,
+                fontWeight: FontWeight.w600,
               ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              date,
-                              style: TextStyle(
-                                color: accentColor,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              title,
-                              style: const TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              description,
-                              style: const TextStyle(
-                                color: Colors.black87,
-                                fontSize: 14,
-                                height: 1.3,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4.0),
-                        child: Icon(
-                          Icons.play_arrow,
-                          color: accentColor,
-                          size: 18,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
         ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text('$date\n$description'),
+        ),
+        isThreeLine: true,
+        trailing: const Icon(Icons.chevron_right),
       ),
     );
   }
