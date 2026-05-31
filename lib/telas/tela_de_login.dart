@@ -119,97 +119,90 @@ class _LoginPageState extends State<LoginPage> {
       body: SafeArea(
         child: SingleChildScrollView(
           padding: AppStyles.pagePadding,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 420),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Text(
-                            'SafeRoute',
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.headlineMedium
-                                ?.copyWith(
-                                  fontSize: AppStyles.headerSize,
-                                  fontWeight: FontWeight.w600,
-                                ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'SafeRoute',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            fontSize: AppStyles.headerSize,
+                            fontWeight: FontWeight.w600,
                           ),
-                          AppStyles.gap8,
-                          Text(
-                            'Acesse sua conta para continuar',
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(fontSize: AppStyles.subtitleSize),
+                    ),
+                    AppStyles.gap8,
+                    Text(
+                      'Acesse sua conta para continuar',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontSize: AppStyles.subtitleSize,
                           ),
-                          AppStyles.gap32,
-                          TextFormField(
-                            controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            textInputAction: TextInputAction.next,
-                            validator: _validateEmail,
-                            decoration: const InputDecoration(
-                              labelText: 'Email',
-                              hintText: 'Digite seu email',
-                            ),
-                          ),
-                          AppStyles.gap16,
-                          TextFormField(
-                            controller: _passwordController,
-                            obscureText: _obscurePassword,
-                            textInputAction: TextInputAction.done,
-                            validator: _validatePassword,
-                            onFieldSubmitted: (_) {
-                              if (!_isLoading) {
-                                _submit();
-                              }
-                            },
-                            decoration: InputDecoration(
-                              labelText: 'Senha',
-                              hintText: 'Digite sua senha',
-                              suffixIcon: IconButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _obscurePassword = !_obscurePassword;
-                                  });
-                                },
-                                icon: Icon(
-                                  _obscurePassword
-                                      ? Icons.visibility
-                                      : Icons.visibility_off,
-                                ),
-                              ),
-                            ),
-                          ),
-                          AppStyles.gap24,
-                          FilledButton(
-                            onPressed: _isLoading ? null : _submit,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              child: _isLoading
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Text('Entrar'),
-                            ),
-                          ),
-                        ],
+                    ),
+                    AppStyles.gap32,
+                    TextFormField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
+                      validator: _validateEmail,
+                      decoration: const InputDecoration(
+                        labelText: 'Email',
+                        hintText: 'Digite seu email',
                       ),
                     ),
-                  ),
+                    AppStyles.gap16,
+                    TextFormField(
+                      controller: _passwordController,
+                      obscureText: _obscurePassword,
+                      textInputAction: TextInputAction.done,
+                      validator: _validatePassword,
+                      onFieldSubmitted: (_) {
+                        if (!_isLoading) {
+                          _submit();
+                        }
+                      },
+                      decoration: InputDecoration(
+                        labelText: 'Senha',
+                        hintText: 'Digite sua senha',
+                        suffixIcon: IconButton(
+                          onPressed: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                          ),
+                        ),
+                      ),
+                    ),
+                    AppStyles.gap24,
+                    FilledButton(
+                      onPressed: _isLoading ? null : _submit,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text('Entrar'),
+                      ),
+                    ),
+                  ],
                 ),
-              );
-            },
+              ),
+            ),
           ),
         ),
       ),
