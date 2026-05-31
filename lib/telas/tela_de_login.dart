@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/app_styles.dart';
 import '../main.dart';
 import '../services/api_service.dart';
+import '../services/auth_service.dart';
 import '../services/session_service.dart';
 
 class LoginPage extends StatefulWidget {
@@ -13,49 +14,88 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _apiService = ApiService();
+  final _authService = AuthService();
   bool _isLoading = false;
+  bool _obscurePassword = true;
 
-  Future<void> _submit(String acao) async {
-    final email = _emailController.text.trim();
-    final senha = _passwordController.text.trim();
+  String? _validateEmail(String? value) {
+    final email = (value ?? '').trim();
 
-    if (email.isEmpty || senha.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Preencha e-mail e senha.')),
-      );
+    if (email.isEmpty) {
+      return 'Informe seu email.';
+    }
+
+    final emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
+    if (!emailRegex.hasMatch(email)) {
+      return 'Digite um email valido.';
+    }
+
+    return null;
+  }
+
+  String? _validatePassword(String? value) {
+    if ((value ?? '').trim().isEmpty) {
+      return 'Informe sua senha.';
+    }
+
+    return null;
+  }
+
+  Future<void> _submit() async {
+    FocusScope.of(context).unfocus();
+    if (!_formKey.currentState!.validate()) {
       return;
     }
+
+    final email = _emailController.text.trim();
+    final senha = _passwordController.text;
 
     setState(() {
       _isLoading = true;
     });
 
     try {
-      final auth = await _apiService.auth(
-        email: email,
-        senha: senha,
-        acao: acao,
-      );
+      final auth = await _authService.login(email: email, senha: senha);
 
-      await SessionService.saveUserSession(userId: auth.userId, email: auth.email);
+      await SessionService.saveUserSession(
+        userId: auth.userId,
+        email: auth.email,
+      );
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(auth.message)),
+        SnackBar(
+          content: Text(auth.message),
+          backgroundColor: Colors.green.shade600,
+        ),
       );
+      await Future.delayed(const Duration(milliseconds: 350));
+      if (!mounted) return;
       Navigator.pushReplacementNamed(context, homeRoute);
     } on ApiException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
+        SnackBar(
+          content: Text(
+            e.message.isEmpty
+                ? 'Nao foi possivel entrar. Tente novamente.'
+                : e.message,
+          ),
+          backgroundColor: Colors.red.shade700,
+        ),
       );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erro inesperado ao autenticar.')),
+        SnackBar(
+          content: const Text(
+            'Erro inesperado ao autenticar. Tente novamente em instantes.',
+          ),
+          backgroundColor: Colors.red.shade700,
+        ),
       );
     } finally {
       if (mounted) {
@@ -76,87 +116,100 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Contêiner principal da tela de autenticação.
       body: SafeArea(
         child: SingleChildScrollView(
           padding: AppStyles.pagePadding,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              AppStyles.gap64,
-              // Título da aplicação exibido no topo da tela.
-              Text(
-                'SafeRoute',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontSize: AppStyles.headerSize,
-                      fontWeight: FontWeight.w600,
-                    ),
-              ),
-              AppStyles.gap8,
-              Text(
-                'LOGIN',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontSize: AppStyles.subtitleSize,
-                    ),
-              ),
-              AppStyles.gap32,
-
-              // Campo para o usuário informar o e-mail.
-              TextFormField(
-                controller: _emailController,
-                decoration: InputDecoration(
-                  labelText: 'Usuário',
-                  hintText: 'Digite seu e-mail',
-                  suffixIcon: GestureDetector(
-                    onTap: () => _emailController.clear(),
-                    child: const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: Icon(Icons.clear),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            'SafeRoute',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.headlineMedium
+                                ?.copyWith(
+                                  fontSize: AppStyles.headerSize,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                          AppStyles.gap8,
+                          Text(
+                            'Acesse sua conta para continuar',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontSize: AppStyles.subtitleSize),
+                          ),
+                          AppStyles.gap32,
+                          TextFormField(
+                            controller: _emailController,
+                            keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
+                            validator: _validateEmail,
+                            decoration: const InputDecoration(
+                              labelText: 'Email',
+                              hintText: 'Digite seu email',
+                            ),
+                          ),
+                          AppStyles.gap16,
+                          TextFormField(
+                            controller: _passwordController,
+                            obscureText: _obscurePassword,
+                            textInputAction: TextInputAction.done,
+                            validator: _validatePassword,
+                            onFieldSubmitted: (_) {
+                              if (!_isLoading) {
+                                _submit();
+                              }
+                            },
+                            decoration: InputDecoration(
+                              labelText: 'Senha',
+                              hintText: 'Digite sua senha',
+                              suffixIcon: IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _obscurePassword = !_obscurePassword;
+                                  });
+                                },
+                                icon: Icon(
+                                  _obscurePassword
+                                      ? Icons.visibility
+                                      : Icons.visibility_off,
+                                ),
+                              ),
+                            ),
+                          ),
+                          AppStyles.gap24,
+                          FilledButton(
+                            onPressed: _isLoading ? null : _submit,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              child: _isLoading
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Text('Entrar'),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-              AppStyles.gap16,
-
-              // Campo para o usuário informar a senha.
-              TextFormField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: 'Senha',
-                  hintText: 'Digite sua senha',
-                  suffixIcon: GestureDetector(
-                    onTap: () => _passwordController.clear(),
-                    child: const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: Icon(Icons.clear),
-                    ),
-                  ),
-                ),
-              ),
-              AppStyles.gap24,
-
-              // Ação principal para login na API.
-              FilledButton.icon(
-                onPressed: _isLoading ? null : () => _submit('login'),
-                icon: const Icon(Icons.arrow_forward),
-                label: const Text('ENTRAR'),
-              ),
-              AppStyles.gap12,
-              // Ação secundária para cadastro usando o mesmo formulário.
-              OutlinedButton.icon(
-                onPressed: _isLoading ? null : () => _submit('cadastro'),
-                icon: const Icon(Icons.person_add_alt_1),
-                label: const Text('CADASTRAR'),
-              ),
-              if (_isLoading) ...[
-                AppStyles.gap16,
-                // Indicador visual enquanto a autenticação está em andamento.
-                const Center(child: CircularProgressIndicator()),
-              ],
-            ],
+              );
+            },
           ),
         ),
       ),

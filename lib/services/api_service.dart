@@ -12,19 +12,8 @@ class ApiException implements Exception {
   final int? statusCode;
 
   @override
-  String toString() => 'ApiException(statusCode: $statusCode, message: $message)';
-}
-
-class AuthResult {
-  const AuthResult({
-    required this.userId,
-    required this.email,
-    required this.message,
-  });
-
-  final int userId;
-  final String email;
-  final String message;
+  String toString() =>
+      'ApiException(statusCode: $statusCode, message: $message)';
 }
 
 class ApiService {
@@ -37,37 +26,6 @@ class ApiService {
     return base.replace(
       path: '${base.path}$path'.replaceAll('//', '/'),
       queryParameters: queryParameters,
-    );
-  }
-
-  Future<AuthResult> auth({
-    required String email,
-    required String senha,
-    required String acao,
-  }) async {
-    final response = await _client.post(
-      _uri('/auth'),
-      headers: const {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'email': email,
-        'senha': senha,
-        'acao': acao,
-      }),
-    );
-
-    final data = _decodeResponse(response);
-    if ((data['status'] ?? '').toString() != 'sucesso') {
-      throw ApiException(
-        (data['mensagem'] ?? 'Falha na autenticação.').toString(),
-        statusCode: response.statusCode,
-      );
-    }
-
-    final usuario = (data['usuario'] as Map<String, dynamic>? ?? {});
-    return AuthResult(
-      userId: _parseInt(usuario['id']),
-      email: (usuario['email'] ?? '').toString(),
-      message: (data['mensagem'] ?? 'Autenticação realizada com sucesso').toString(),
     );
   }
 
