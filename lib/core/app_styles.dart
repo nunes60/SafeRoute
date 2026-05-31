@@ -11,6 +11,7 @@ class AppStyles {
   static const double busyIndicatorStrokeWidth = 2;
 
   static const Size buttonMinimumSize = Size.fromHeight(48);
+  static const Size dialogActionMinimumSize = Size(0, 48);
 
   static const EdgeInsets pagePadding = EdgeInsets.all(20);
   static const EdgeInsets sectionPadding = EdgeInsets.all(16);
@@ -23,7 +24,6 @@ class AppStyles {
   static const EdgeInsets compactPadding = EdgeInsets.all(12);
   static const EdgeInsets topPadding8 = EdgeInsets.only(top: 8);
   static const EdgeInsets bottomPadding16 = EdgeInsets.only(bottom: 16);
-  static const EdgeInsets dialogActionEndPadding = EdgeInsets.only(right: 12);
   static const EdgeInsets horizontalPadding16 = EdgeInsets.symmetric(
     horizontal: 16,
   );

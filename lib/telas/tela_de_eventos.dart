@@ -105,26 +105,25 @@ class _EventListScreenState extends State<EventListScreen> with RouteAware {
           content: Text(
             'Deseja excluir "${event.nomeDisciplina}" da sua lista?',
           ),
+          actionsOverflowButtonSpacing: 12,
           actions: [
-            Padding(
-              padding: AppStyles.dialogActionEndPadding,
-              child: OutlinedButton(
-                onPressed: () {
-                  Navigator.pop(context, false);
-                },
-                style: OutlinedButton.styleFrom(
-                  minimumSize: AppStyles.buttonMinimumSize,
-                  padding: AppStyles.buttonPadding,
-                ),
-                child: const Text('Cancelar'),
+            OutlinedButton(
+              onPressed: () {
+                Navigator.pop(context, false);
+              },
+              style: OutlinedButton.styleFrom(
+                minimumSize: AppStyles.dialogActionMinimumSize,
+                padding: AppStyles.buttonPadding,
               ),
+              child: const Text('Cancelar'),
             ),
+            AppStyles.gapWidth12,
             FilledButton(
               onPressed: () {
                 Navigator.pop(context, true);
               },
               style: FilledButton.styleFrom(
-                minimumSize: AppStyles.buttonMinimumSize,
+                minimumSize: AppStyles.dialogActionMinimumSize,
                 padding: AppStyles.buttonPadding,
               ),
               child: const Text('Excluir'),
