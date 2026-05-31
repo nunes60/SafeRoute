@@ -87,17 +87,19 @@ class _WelcomeScreenState extends State<WelcomeScreen> with RouteAware {
             'Deseja excluir "${event.nomeDisciplina}" da sua lista?',
           ),
           actions: [
-            OutlinedButton(
-              onPressed: () {
-                Navigator.pop(context, false);
-              },
-              style: OutlinedButton.styleFrom(
-                minimumSize: AppStyles.buttonMinimumSize,
-                padding: AppStyles.buttonPadding,
+            Padding(
+              padding: AppStyles.dialogActionEndPadding,
+              child: OutlinedButton(
+                onPressed: () {
+                  Navigator.pop(context, false);
+                },
+                style: OutlinedButton.styleFrom(
+                  minimumSize: AppStyles.buttonMinimumSize,
+                  padding: AppStyles.buttonPadding,
+                ),
+                child: const Text('Cancelar'),
               ),
-              child: const Text('Cancelar'),
             ),
-            AppStyles.gapWidth12,
             FilledButton(
               onPressed: () {
                 Navigator.pop(context, true);

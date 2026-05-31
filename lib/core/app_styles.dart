@@ -23,6 +23,7 @@ class AppStyles {
   static const EdgeInsets compactPadding = EdgeInsets.all(12);
   static const EdgeInsets topPadding8 = EdgeInsets.only(top: 8);
   static const EdgeInsets bottomPadding16 = EdgeInsets.only(bottom: 16);
+  static const EdgeInsets dialogActionEndPadding = EdgeInsets.only(right: 12);
   static const EdgeInsets horizontalPadding16 = EdgeInsets.symmetric(
     horizontal: 16,
   );
@@ -44,6 +45,4 @@ class AppStyles {
   static const double subtitleSize = 16;
 
   static const Duration feedbackDelay = Duration(milliseconds: 350);
-
-  static const SizedBox gapWidth12 = SizedBox(width: 12);
 }
