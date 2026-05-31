@@ -109,9 +109,12 @@ class _LoginPageState extends State<LoginPage> {
                 decoration: InputDecoration(
                   labelText: 'Usuário',
                   hintText: 'Digite seu e-mail',
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.clear),
-                    onPressed: () => _emailController.clear(),
+                  suffixIcon: GestureDetector(
+                    onTap: () => _emailController.clear(),
+                    child: const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: Icon(Icons.clear),
+                    ),
                   ),
                 ),
               ),
@@ -124,9 +127,12 @@ class _LoginPageState extends State<LoginPage> {
                 decoration: InputDecoration(
                   labelText: 'Senha',
                   hintText: 'Digite sua senha',
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.clear),
-                    onPressed: () => _passwordController.clear(),
+                  suffixIcon: GestureDetector(
+                    onTap: () => _passwordController.clear(),
+                    child: const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: Icon(Icons.clear),
+                    ),
                   ),
                 ),
               ),

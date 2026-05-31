@@ -205,9 +205,12 @@ class _CadastrarEventoScreenState extends State<CadastrarEventoScreen> {
           controller: controller,
           decoration: InputDecoration(
             hintText: hint,
-            suffixIcon: IconButton(
-              icon: const Icon(Icons.clear),
-              onPressed: () => controller.clear(),
+            suffixIcon: GestureDetector(
+              onTap: () => controller.clear(),
+              child: const Padding(
+                padding: EdgeInsets.all(12),
+                child: Icon(Icons.clear),
+              ),
             ),
             border: const OutlineInputBorder(),
             filled: true,
