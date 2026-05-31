@@ -16,8 +16,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-android-web:
-    name: Build Android and Web
+  build-android:
+    name: Build Android
     runs-on: ubuntu-latest
 
     steps:
@@ -38,9 +38,6 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Enable Flutter web
-        run: flutter config --enable-web
-
       - name: Install dependencies
         run: flutter pub get
 
@@ -53,10 +50,8 @@ jobs:
             flutter create --platforms=android .
           fi
 
-      - name: Build release APK and web bundle
-        run: |
-          flutter build apk --release
-          flutter build web --release
+      - name: Build release APK
+        run: flutter build apk --release
 
       - name: Upload Android build artifact
         uses: actions/upload-artifact@v4
@@ -64,6 +59,31 @@ jobs:
           name: android-apk-raw
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
+
+  build-web:
+    name: Build Web
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'release' && github.event.release.tag_name || github.ref }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Enable Flutter web
+        run: flutter config --enable-web
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build web bundle
+        run: flutter build web --release
 
       - name: Upload web build artifact
         uses: actions/upload-artifact@v4
@@ -114,7 +134,8 @@ jobs:
   publish-builds:
     name: Package and publish builds
     needs:
-      - build-android-web
+      - build-android
+      - build-web
       - build-windows
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
