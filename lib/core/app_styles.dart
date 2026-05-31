@@ -36,6 +36,7 @@ class AppStyles {
   static const SizedBox gap24 = SizedBox(height: 24);
   static const SizedBox gap32 = SizedBox(height: 32);
   static const SizedBox gap64 = SizedBox(height: 64);
+  static const SizedBox gapWidth12 = SizedBox(width: 12);
 
   static const double iconSmall = 18;
   static const double iconMedium = 20;
