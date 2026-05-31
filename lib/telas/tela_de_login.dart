@@ -20,6 +20,46 @@ class _LoginPageState extends State<LoginPage> {
   final _authService = AuthService();
   bool _isLoading = false;
   bool _obscurePassword = true;
+  String? _submitError;
+
+  String _formatAuthError(Object error) {
+    final rawMessage = error.toString().trim();
+
+    if (rawMessage.isEmpty) {
+      return 'Erro inesperado ao autenticar.';
+    }
+
+    const prefixes = <String>[
+      'Exception: ',
+      'ClientException: ',
+      'Bad state: ',
+    ];
+
+    for (final prefix in prefixes) {
+      if (rawMessage.startsWith(prefix) && rawMessage.length > prefix.length) {
+        return rawMessage.substring(prefix.length).trim();
+      }
+    }
+
+    return rawMessage;
+  }
+
+  void _showAuthError(String message) {
+    final errorMessage = message.trim().isEmpty
+        ? 'Erro inesperado ao autenticar.'
+        : message.trim();
+
+    setState(() {
+      _submitError = errorMessage;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(errorMessage),
+        backgroundColor: Colors.red.shade700,
+      ),
+    );
+  }
 
   String? _validateEmail(String? value) {
     final email = (value ?? '').trim();
@@ -55,6 +95,7 @@ class _LoginPageState extends State<LoginPage> {
 
     setState(() {
       _isLoading = true;
+      _submitError = null;
     });
 
     try {
@@ -77,26 +118,14 @@ class _LoginPageState extends State<LoginPage> {
       Navigator.pushReplacementNamed(context, homeRoute);
     } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            e.message.isEmpty
-                ? 'Nao foi possivel entrar. Tente novamente.'
-                : e.message,
-          ),
-          backgroundColor: Colors.red.shade700,
-        ),
+      _showAuthError(
+        e.message.isEmpty
+            ? 'Nao foi possivel entrar. Tente novamente.'
+            : e.message,
       );
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(
-            'Erro inesperado ao autenticar. Tente novamente em instantes.',
-          ),
-          backgroundColor: Colors.red.shade700,
-        ),
-      );
+      _showAuthError(_formatAuthError(e));
     } finally {
       if (mounted) {
         setState(() {
@@ -183,6 +212,19 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                     ),
+                    if (_submitError != null) ...[
+                      AppStyles.gap16,
+                      Container(
+                        color: Colors.red.shade50,
+                        padding: const EdgeInsets.all(12),
+                        child: Text(
+                          _submitError!,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Colors.red.shade900,
+                              ),
+                        ),
+                      ),
+                    ],
                     AppStyles.gap24,
                     FilledButton(
                       onPressed: _isLoading ? null : _submit,
