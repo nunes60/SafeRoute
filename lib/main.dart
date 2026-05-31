@@ -17,6 +17,8 @@ const String loginRoute = '/login';
 const String homeRoute = '/home';
 const String eventsRoute = '/events';
 const String createEventRoute = '/create-event';
+final RouteObserver<PageRoute<dynamic>> appRouteObserver =
+  RouteObserver<PageRoute<dynamic>>();
 
 class SafeRouteApp extends StatelessWidget {
   const SafeRouteApp({super.key});
@@ -31,6 +33,7 @@ class SafeRouteApp extends StatelessWidget {
           locale: const Locale('pt', 'BR'),
           supportedLocales: const [Locale('pt', 'BR')],
           localizationsDelegates: GlobalMaterialLocalizations.delegates,
+          navigatorObservers: [appRouteObserver],
           theme: AppTheme.light(lightDynamicColor),
           darkTheme: AppTheme.dark(darkDynamicColor),
           themeMode: ThemeMode.system,

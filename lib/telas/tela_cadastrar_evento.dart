@@ -152,10 +152,10 @@ class _CadastrarEventoScreenState extends State<CadastrarEventoScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Campo para informar a disciplina.
+            // Campo para informar o título do evento.
             _buildInputField(
-              label: 'Nome da disciplina',
-              hint: 'Digite o nome da disciplina',
+              label: 'Título',
+              hint: 'Digite o título do evento',
               controller: _disciplinaController,
             ),
             AppStyles.gap20,

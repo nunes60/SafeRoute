@@ -6,6 +6,9 @@ import '../main.dart';
 import '../models/evento.dart';
 import '../services/api_service.dart';
 import '../services/session_service.dart';
+import 'tela_cadastrar_evento.dart';
+
+enum _HighlightAction { editar, excluir }
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -14,14 +17,40 @@ class WelcomeScreen extends StatefulWidget {
   State<WelcomeScreen> createState() => _WelcomeScreenState();
 }
 
-class _WelcomeScreenState extends State<WelcomeScreen> {
+class _WelcomeScreenState extends State<WelcomeScreen> with RouteAware {
   final _apiService = ApiService();
+  final Set<int> _busyEventIds = <int>{};
+  PageRoute<dynamic>? _route;
   late Future<List<Evento>> _highlightsFuture;
 
   @override
   void initState() {
     super.initState();
     _highlightsFuture = _loadHighlights();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute && route != _route) {
+      if (_route != null) {
+        appRouteObserver.unsubscribe(this);
+      }
+      appRouteObserver.subscribe(this, route);
+      _route = route;
+    }
+  }
+
+  @override
+  void didPopNext() {
+    _refreshHighlights();
+  }
+
+  @override
+  void dispose() {
+    appRouteObserver.unsubscribe(this);
+    super.dispose();
   }
 
   Future<List<Evento>> _loadHighlights() async {
@@ -31,6 +60,98 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     }
 
     return _apiService.listarEventos(usuarioId: usuarioId, limit: 3);
+  }
+
+  void _refreshHighlights() {
+    if (!mounted) return;
+    setState(() {
+      _highlightsFuture = _loadHighlights();
+    });
+  }
+
+  Future<void> _editEvent(Evento event) async {
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (context) => CadastrarEventoScreen(evento: event),
+      ),
+    );
+  }
+
+  Future<void> _deleteEvent(Evento event) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Excluir evento'),
+          content: Text(
+            'Deseja excluir "${event.nomeDisciplina}" da sua lista?',
+          ),
+          actions: [
+            OutlinedButton(
+              onPressed: () {
+                Navigator.pop(context, false);
+              },
+              style: OutlinedButton.styleFrom(
+                minimumSize: AppStyles.buttonMinimumSize,
+                padding: AppStyles.buttonPadding,
+              ),
+              child: const Text('Cancelar'),
+            ),
+            AppStyles.gapWidth12,
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(context, true);
+              },
+              style: FilledButton.styleFrom(
+                minimumSize: AppStyles.buttonMinimumSize,
+                padding: AppStyles.buttonPadding,
+              ),
+              child: const Text('Excluir'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldDelete != true || !mounted) return;
+
+    setState(() {
+      _busyEventIds.add(event.id);
+    });
+
+    try {
+      final usuarioId = await SessionService.getUserId();
+      if (usuarioId == null) {
+        throw ApiException('Sessão não encontrada. Faça login novamente.');
+      }
+
+      await _apiService.excluirEvento(eventoId: event.id, usuarioId: usuarioId);
+
+      if (!mounted) return;
+      setState(() {
+        _busyEventIds.remove(event.id);
+        _highlightsFuture = _loadHighlights();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Evento excluído com sucesso.')),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _busyEventIds.remove(event.id);
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _busyEventIds.remove(event.id);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erro ao excluir o evento.')),
+      );
+    }
   }
 
   Future<void> _logout() async {
@@ -122,10 +243,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                           Padding(
                             padding: AppStyles.bottomPadding16,
                             child: _buildHighlightCard(
+                              event: event,
                               date:
                                   'Até ${BrDateFormatter.formatShort(event.dataEntrega)}',
                               title: event.nomeDisciplina,
                               description: event.descricaoAtividade,
+                              isBusy: _busyEventIds.contains(event.id),
                             ),
                           ),
                       ],
@@ -146,10 +269,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 FilledButton.icon(
                   onPressed: () async {
                     await Navigator.pushNamed(context, createEventRoute);
-                    if (!mounted) return;
-                    setState(() {
-                      _highlightsFuture = _loadHighlights();
-                    });
                   },
                   icon: const Icon(Icons.add_circle_outline),
                   label: const Text('Adicionar novo'),
@@ -164,13 +283,17 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 
   Widget _buildHighlightCard({
+    required Evento event,
     required String date,
     required String title,
     required String description,
+    required bool isBusy,
   }) {
     // Card padrão para representar um compromisso em destaque.
     return Card(
       child: ListTile(
+        enabled: !isBusy,
+        onTap: isBusy ? null : () => _editEvent(event),
         contentPadding: AppStyles.cardPadding,
         title: Text(
           title,
@@ -184,7 +307,35 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
           child: Text('$date\n$description'),
         ),
         isThreeLine: true,
-        trailing: const Icon(Icons.chevron_right),
+        trailing: isBusy
+            ? const SizedBox(
+                height: AppStyles.busyIndicatorSize,
+                width: AppStyles.busyIndicatorSize,
+                child: CircularProgressIndicator(
+                  strokeWidth: AppStyles.busyIndicatorStrokeWidth,
+                ),
+              )
+            : PopupMenuButton<_HighlightAction>(
+                tooltip: 'Ações do evento',
+                onSelected: (action) {
+                  switch (action) {
+                    case _HighlightAction.editar:
+                      _editEvent(event);
+                    case _HighlightAction.excluir:
+                      _deleteEvent(event);
+                  }
+                },
+                itemBuilder: (context) => const [
+                  PopupMenuItem<_HighlightAction>(
+                    value: _HighlightAction.editar,
+                    child: Text('Editar'),
+                  ),
+                  PopupMenuItem<_HighlightAction>(
+                    value: _HighlightAction.excluir,
+                    child: Text('Excluir'),
+                  ),
+                ],
+              ),
       ),
     );
   }

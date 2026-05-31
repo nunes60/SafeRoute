@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/app_styles.dart';
 import '../core/br_date_formatter.dart';
+import '../main.dart';
 import '../models/evento.dart';
 import '../services/api_service.dart';
 import '../services/session_service.dart';
@@ -16,9 +17,10 @@ class EventListScreen extends StatefulWidget {
   State<EventListScreen> createState() => _EventListScreenState();
 }
 
-class _EventListScreenState extends State<EventListScreen> {
+class _EventListScreenState extends State<EventListScreen> with RouteAware {
   final _apiService = ApiService();
   final Set<int> _busyEventIds = <int>{};
+  PageRoute<dynamic>? _route;
   bool _isLoading = true;
   String? _error;
   List<Evento> _events = const [];
@@ -27,6 +29,30 @@ class _EventListScreenState extends State<EventListScreen> {
   void initState() {
     super.initState();
     _loadEvents();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute && route != _route) {
+      if (_route != null) {
+        appRouteObserver.unsubscribe(this);
+      }
+      appRouteObserver.subscribe(this, route);
+      _route = route;
+    }
+  }
+
+  @override
+  void didPopNext() {
+    _loadEvents();
+  }
+
+  @override
+  void dispose() {
+    appRouteObserver.unsubscribe(this);
+    super.dispose();
   }
 
   Future<void> _loadEvents() async {
@@ -63,15 +89,11 @@ class _EventListScreenState extends State<EventListScreen> {
   }
 
   Future<void> _editEvent(Evento event) async {
-    final updated = await Navigator.of(context).push<bool>(
+    await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (context) => CadastrarEventoScreen(evento: event),
       ),
     );
-
-    if (updated == true && mounted) {
-      await _loadEvents();
-    }
   }
 
   Future<void> _deleteEvent(Evento event) async {
@@ -84,16 +106,25 @@ class _EventListScreenState extends State<EventListScreen> {
             'Deseja excluir "${event.nomeDisciplina}" da sua lista?',
           ),
           actions: [
-            TextButton(
+            OutlinedButton(
               onPressed: () {
                 Navigator.pop(context, false);
               },
+              style: OutlinedButton.styleFrom(
+                minimumSize: AppStyles.buttonMinimumSize,
+                padding: AppStyles.buttonPadding,
+              ),
               child: const Text('Cancelar'),
             ),
+            AppStyles.gapWidth12,
             FilledButton(
               onPressed: () {
                 Navigator.pop(context, true);
               },
+              style: FilledButton.styleFrom(
+                minimumSize: AppStyles.buttonMinimumSize,
+                padding: AppStyles.buttonPadding,
+              ),
               child: const Text('Excluir'),
             ),
           ],

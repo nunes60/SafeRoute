@@ -1,0 +1,241 @@
+name: Flutter Build and Release
+
+on:
+  push:
+  pull_request:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: flutter-build-and-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-android-web:
+    name: Build Android and Web
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'release' && github.event.release.tag_name || github.ref }}
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Enable Flutter web
+        run: flutter config --enable-web
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run analyze
+        run: flutter analyze
+
+      - name: Ensure Android project exists
+        run: |
+          if [ ! -d android ]; then
+            flutter create --platforms=android .
+          fi
+
+      - name: Build release APK and web bundle
+        run: |
+          flutter build apk --release
+          flutter build web --release
+
+      - name: Upload Android build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-raw
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+
+      - name: Upload web build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build-raw
+          path: build/web
+          if-no-files-found: error
+
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'release' && github.event.release.tag_name || github.ref }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Enable Flutter Windows desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Ensure Windows project exists
+        run: |
+          if (-not (Test-Path windows)) {
+            flutter create --platforms=windows .
+          }
+
+      - name: Build Windows release bundle
+        run: |
+          flutter build windows --release
+
+      - name: Upload Windows build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build-raw
+          path: build/windows/x64/runner/Release
+          if-no-files-found: error
+
+  publish-builds:
+    name: Package and publish builds
+    needs:
+      - build-android-web
+      - build-windows
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'release' && github.event.release.tag_name || github.ref }}
+
+      - name: Download Android build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: android-apk-raw
+          path: artifacts/android
+
+      - name: Download web build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: web-build-raw
+          path: artifacts/web
+
+      - name: Download Windows build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-build-raw
+          path: artifacts/windows
+
+      - name: Prepare packaged artifacts
+        id: package_artifacts
+        run: |
+          PROJECT_NAME="$(awk '/^name:/ { print $2; exit }' pubspec.yaml)"
+          VERSION_LINE="$(awk '/^version:/ { print $2; exit }' pubspec.yaml)"
+          APP_VERSION="${VERSION_LINE%%+*}"
+          SAFE_NAME="$(printf '%s' "$PROJECT_NAME" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9_-' '-')"
+          RELEASE_TAG=""
+
+          if [ "${GITHUB_EVENT_NAME}" = "release" ]; then
+            RELEASE_TAG="${{ github.event.release.tag_name }}"
+          elif [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            RELEASE_TAG="${GITHUB_REF#refs/tags/}"
+          fi
+
+          mkdir -p dist release-assets
+          rm -f dist/app-release.apk "dist/${SAFE_NAME}-web.zip" "dist/${SAFE_NAME}-windows.zip"
+          cp artifacts/android/app-release.apk dist/app-release.apk
+          (
+            cd artifacts/web
+            zip -r "$GITHUB_WORKSPACE/dist/${SAFE_NAME}-web.zip" .
+          )
+          (
+            cd artifacts/windows
+            zip -r "$GITHUB_WORKSPACE/dist/${SAFE_NAME}-windows.zip" .
+          )
+
+          RELEASE_LABEL="${RELEASE_TAG:-$APP_VERSION}"
+          cp dist/app-release.apk "release-assets/${SAFE_NAME}-${RELEASE_LABEL}-android.apk"
+          cp "dist/${SAFE_NAME}-web.zip" "release-assets/${SAFE_NAME}-${RELEASE_LABEL}-web.zip"
+          cp "dist/${SAFE_NAME}-windows.zip" "release-assets/${SAFE_NAME}-${RELEASE_LABEL}-windows.zip"
+
+          echo "safe_name=$SAFE_NAME" >> "$GITHUB_OUTPUT"
+          echo "app_version=$APP_VERSION" >> "$GITHUB_OUTPUT"
+          echo "release_tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Upload packaged artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: packaged-builds
+          path: |
+            dist/app-release.apk
+            dist/${{ steps.package_artifacts.outputs.safe_name }}-web.zip
+            dist/${{ steps.package_artifacts.outputs.safe_name }}-windows.zip
+          if-no-files-found: error
+
+      - name: Commit packaged builds to repository
+        if: github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          BRANCH="${GITHUB_REF_NAME}"
+
+          git add dist/app-release.apk
+          git add "dist/${{ steps.package_artifacts.outputs.safe_name }}-web.zip"
+          git add "dist/${{ steps.package_artifacts.outputs.safe_name }}-windows.zip"
+
+          if ! git diff --cached --quiet; then
+            ORIGINAL_HEAD="$(git rev-parse HEAD)"
+            git commit -m "chore(ci): update packaged builds [skip ci]"
+
+            if ! git fetch origin "$BRANCH"; then
+              echo "Could not fetch $BRANCH to verify the push precondition."
+              exit 1
+            fi
+
+            if [ "$ORIGINAL_HEAD" != "$(git rev-parse FETCH_HEAD)" ]; then
+              echo "Branch changed after checkout; skipping artifact commit so a newer workflow run can publish fresher builds."
+              exit 0
+            fi
+
+            if ! git push origin "HEAD:$BRANCH"; then
+              if git fetch origin "$BRANCH" && [ "$ORIGINAL_HEAD" != "$(git rev-parse FETCH_HEAD)" ]; then
+                echo "Could not push artifacts because the branch changed; a newer workflow run should publish the latest builds."
+                exit 0
+              fi
+
+              echo "Could not push packaged artifacts to $BRANCH."
+              exit 1
+            fi
+          else
+            echo "No packaged artifact changes to commit"
+          fi
+
+      - name: Create or update GitHub release
+        if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/')
+        uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: true
+          artifactErrorsFailBuild: true
+          artifacts: release-assets/*
+          generateReleaseNotes: true
+          name: Release ${{ steps.package_artifacts.outputs.release_tag || steps.package_artifacts.outputs.app_version }}
+          replacesArtifacts: true
+          tag: ${{ steps.package_artifacts.outputs.release_tag || github.ref_name }}
