@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 
+import '../core/app_layout.dart';
 import '../core/app_styles.dart';
 import '../main.dart';
-import '../services/api_service.dart';
+import '../services/api_exception.dart';
 import '../services/auth_service.dart';
-import '../services/session_service.dart';
 
+/// Exibe o formulário de autenticação do usuário.
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
   @override
+  /// Cria o estado que controla validação e envio do login.
   State<LoginPage> createState() => _LoginPageState();
 }
 
+/// Controla o preenchimento, validação e submissão do login.
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
@@ -22,6 +25,7 @@ class _LoginPageState extends State<LoginPage> {
   bool _obscurePassword = true;
   String? _submitError;
 
+  /// Normaliza mensagens de erro para exibição amigável ao usuário.
   String _formatAuthError(Object error) {
     final rawMessage = error.toString().trim();
 
@@ -44,6 +48,7 @@ class _LoginPageState extends State<LoginPage> {
     return rawMessage;
   }
 
+  /// Exibe o erro de autenticação no formulário e em um snackbar.
   void _showAuthError(String message) {
     final errorMessage = message.trim().isEmpty
         ? 'Erro inesperado ao autenticar.'
@@ -66,6 +71,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  /// Valida se o campo de e-mail foi preenchido corretamente.
   String? _validateEmail(String? value) {
     final email = (value ?? '').trim();
 
@@ -81,6 +87,7 @@ class _LoginPageState extends State<LoginPage> {
     return null;
   }
 
+  /// Valida se a senha foi informada antes do envio.
   String? _validatePassword(String? value) {
     if ((value ?? '').trim().isEmpty) {
       return 'Informe sua senha.';
@@ -89,6 +96,7 @@ class _LoginPageState extends State<LoginPage> {
     return null;
   }
 
+  /// Envia as credenciais, trata feedbacks e navega após o login.
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) {
@@ -104,12 +112,7 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      final auth = await _authService.login(email: email, senha: senha);
-
-      await SessionService.saveUserSession(
-        userId: auth.userId,
-        email: auth.email,
-      );
+      final auth = await _authService.signIn(email: email, senha: senha);
 
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -138,6 +141,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   @override
+  /// Libera os controllers usados pelos campos do formulário.
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
@@ -145,113 +149,101 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   @override
+  /// Monta a interface do formulário de acesso.
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: AppStyles.pagePadding,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: AppStyles.contentMaxWidth,
-              ),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      'SafeRoute',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineMedium
-                          ?.copyWith(
-                            fontSize: AppStyles.headerSize,
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                    AppStyles.gap8,
-                    Text(
-                      'Acesse sua conta para continuar',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontSize: AppStyles.subtitleSize,
-                      ),
-                    ),
-                    AppStyles.gap32,
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      textInputAction: TextInputAction.next,
-                      validator: _validateEmail,
-                      decoration: const InputDecoration(
-                        labelText: 'E-mail',
-                        hintText: 'Digite seu e-mail',
-                      ),
-                    ),
-                    AppStyles.gap16,
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      textInputAction: TextInputAction.done,
-                      validator: _validatePassword,
-                      onFieldSubmitted: (_) {
-                        if (!_isLoading) {
-                          _submit();
-                        }
-                      },
-                      decoration: InputDecoration(
-                        labelText: 'Senha',
-                        hintText: 'Digite sua senha',
-                        suffixIcon: IconButton(
-                          onPressed: () {
-                            setState(() {
-                              _obscurePassword = !_obscurePassword;
-                            });
-                          },
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                          ),
-                        ),
-                      ),
-                    ),
-                    if (_submitError != null) ...[
-                      AppStyles.gap16,
-                      Container(
-                        decoration: BoxDecoration(
-                          color: colorScheme.errorContainer,
-                          borderRadius: BorderRadius.circular(
-                            AppStyles.cardRadius,
-                          ),
-                        ),
-                        padding: AppStyles.compactPadding,
-                        child: Text(
-                          _submitError!,
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: colorScheme.onErrorContainer),
-                        ),
-                      ),
-                    ],
-                    AppStyles.gap24,
-                    FilledButton(
-                      onPressed: _isLoading ? null : _submit,
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: AppStyles.busyIndicatorSize,
-                              height: AppStyles.busyIndicatorSize,
-                              child: CircularProgressIndicator(
-                                strokeWidth: AppStyles.busyIndicatorStrokeWidth,
-                              ),
-                            )
-                          : const Text('Entrar'),
-                    ),
-                  ],
+        child: AppLayout(
+          width: AppLayoutWidth.form,
+          scrollable: true,
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'SafeRoute',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.headlineMedium,
                 ),
-              ),
+                AppStyles.gap8,
+                Text(
+                  'Acesse sua conta para continuar',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                AppStyles.gap32,
+                TextFormField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  validator: _validateEmail,
+                  decoration: const InputDecoration(
+                    labelText: 'E-mail',
+                    hintText: 'Digite seu e-mail',
+                  ),
+                ),
+                AppStyles.gap16,
+                TextFormField(
+                  controller: _passwordController,
+                  obscureText: _obscurePassword,
+                  textInputAction: TextInputAction.done,
+                  validator: _validatePassword,
+                  onFieldSubmitted: (_) {
+                    if (!_isLoading) {
+                      _submit();
+                    }
+                  },
+                  decoration: InputDecoration(
+                    labelText: 'Senha',
+                    hintText: 'Digite sua senha',
+                    suffixIcon: IconButton(
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                      ),
+                    ),
+                  ),
+                ),
+                if (_submitError != null) ...[
+                  AppStyles.gap16,
+                  Container(
+                    decoration: BoxDecoration(
+                      color: colorScheme.errorContainer,
+                      borderRadius: BorderRadius.circular(AppStyles.cardRadius),
+                    ),
+                    padding: AppStyles.compactPadding,
+                    child: Text(
+                      _submitError!,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onErrorContainer,
+                      ),
+                    ),
+                  ),
+                ],
+                AppStyles.gap24,
+                FilledButton(
+                  onPressed: _isLoading ? null : _submit,
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: AppStyles.busyIndicatorSize,
+                          height: AppStyles.busyIndicatorSize,
+                          child: CircularProgressIndicator(
+                            strokeWidth: AppStyles.busyIndicatorStrokeWidth,
+                          ),
+                        )
+                      : const Text('Entrar'),
+                ),
+              ],
             ),
           ),
         ),

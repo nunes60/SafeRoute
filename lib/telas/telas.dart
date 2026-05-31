@@ -1,3 +1,4 @@
+// Reexporta as telas principais para simplificar os imports no app.
 export 'tela_de_login.dart';
 export 'tela_inicial.dart';
 export 'tela_de_eventos.dart';

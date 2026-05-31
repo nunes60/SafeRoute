@@ -1,3 +1,6 @@
+import '../core/json_reader.dart';
+
+/// Representa um evento acadêmico exibido e manipulado no app.
 class Evento {
   const Evento({
     required this.id,
@@ -11,18 +14,23 @@ class Evento {
   final String descricaoAtividade;
   final DateTime dataEntrega;
 
+  /// Cria um evento a partir do payload recebido da API.
   factory Evento.fromJson(Map<String, dynamic> json) {
     return Evento(
-      id: _parseInt(json['evento_id'] ?? json['id_evento'] ?? json['id']),
-      nomeDisciplina: (json['nome_disciplina'] ?? '').toString(),
-      descricaoAtividade: (json['descricao_atividade'] ?? '').toString(),
-      dataEntrega: DateTime.tryParse((json['data_entrega'] ?? '').toString()) ??
-          DateTime.now(),
+      id: JsonReader.requiredInt(json, const [
+        'evento_id',
+        'id_evento',
+        'id',
+      ], fieldName: 'evento_id'),
+      nomeDisciplina: JsonReader.requiredNonEmptyString(json, const [
+        'nome_disciplina',
+      ], fieldName: 'nome_disciplina'),
+      descricaoAtividade: JsonReader.requiredNonEmptyString(json, const [
+        'descricao_atividade',
+      ], fieldName: 'descricao_atividade'),
+      dataEntrega: JsonReader.requiredDate(json, const [
+        'data_entrega',
+      ], fieldName: 'data_entrega'),
     );
-  }
-
-  static int _parseInt(dynamic value) {
-    if (value is int) return value;
-    return int.tryParse(value?.toString() ?? '') ?? 0;
   }
 }

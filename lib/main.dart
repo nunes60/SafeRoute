@@ -7,23 +7,32 @@ import 'core/app_theme.dart';
 import 'services/session_service.dart';
 import 'telas/telas.dart';
 
+/// Inicializa dependências globais e inicia a aplicação Flutter.
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('pt_BR');
   runApp(const SafeRouteApp());
 }
 
+/// Define a rota nomeada da tela de login.
 const String loginRoute = '/login';
+/// Define a rota nomeada da tela inicial.
 const String homeRoute = '/home';
+/// Define a rota nomeada da lista completa de eventos.
 const String eventsRoute = '/events';
+/// Define a rota nomeada do formulário de cadastro de eventos.
 const String createEventRoute = '/create-event';
-final RouteObserver<PageRoute<dynamic>> appRouteObserver =
-  RouteObserver<PageRoute<dynamic>>();
 
+/// Observa mudanças de rota para atualizar telas quando o usuário retorna.
+final RouteObserver<PageRoute<dynamic>> appRouteObserver =
+    RouteObserver<PageRoute<dynamic>>();
+
+/// Configura tema, localização e navegação global do aplicativo.
 class SafeRouteApp extends StatelessWidget {
   const SafeRouteApp({super.key});
 
   @override
+  /// Monta o MaterialApp principal com temas claro e escuro dinâmicos.
   Widget build(BuildContext context) {
     return DynamicColorBuilder(
       builder: (lightDynamicColor, darkDynamicColor) {
@@ -50,10 +59,12 @@ class SafeRouteApp extends StatelessWidget {
   }
 }
 
+/// Decide se o usuário deve iniciar na home ou voltar para o login.
 class AppStartScreen extends StatelessWidget {
   const AppStartScreen({super.key});
 
   @override
+  /// Consulta a sessão salva e renderiza a primeira tela adequada.
   Widget build(BuildContext context) {
     return FutureBuilder<bool>(
       future: SessionService.hasSession(),

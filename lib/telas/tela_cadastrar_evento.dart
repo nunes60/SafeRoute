@@ -1,25 +1,30 @@
 import 'package:flutter/material.dart';
 
+import '../core/app_layout.dart';
 import '../core/app_styles.dart';
 import '../core/br_date_formatter.dart';
 import '../models/evento.dart';
-import '../services/api_service.dart';
-import '../services/session_service.dart';
+import '../services/api_exception.dart';
+import '../services/event_service.dart';
 
+/// Exibe o formulário para criar ou editar um evento.
 class CadastrarEventoScreen extends StatefulWidget {
   const CadastrarEventoScreen({super.key, this.evento});
 
   final Evento? evento;
 
   @override
+  /// Cria o estado que controla os campos e o salvamento do formulário.
   State<CadastrarEventoScreen> createState() => _CadastrarEventoScreenState();
 }
 
+/// Gerencia os campos, a data escolhida e o envio do formulário.
 class _CadastrarEventoScreenState extends State<CadastrarEventoScreen> {
+  final _formKey = GlobalKey<FormState>();
   final TextEditingController _disciplinaController = TextEditingController();
   final TextEditingController _atividadeController = TextEditingController();
   final TextEditingController _dateController = TextEditingController();
-  final _apiService = ApiService();
+  final _eventService = EventService();
 
   DateTime _selectedDate = DateTime.now();
   bool _isSaving = false;
@@ -27,6 +32,7 @@ class _CadastrarEventoScreenState extends State<CadastrarEventoScreen> {
   bool get _isEditing => widget.evento != null;
 
   @override
+  /// Preenche os campos quando a tela é aberta em modo de edição.
   void initState() {
     super.initState();
     if (_isEditing) {
@@ -37,11 +43,17 @@ class _CadastrarEventoScreenState extends State<CadastrarEventoScreen> {
     _syncSelectedDate();
   }
 
+  /// Atualiza o texto exibido no campo de data selecionada.
   void _syncSelectedDate() {
     _dateController.text = BrDateFormatter.formatShort(_selectedDate);
   }
 
+  /// Abre o seletor de data e sincroniza o valor escolhido no formulário.
   Future<void> _pickDate() async {
+    if (_isSaving) {
+      return;
+    }
+
     final picked = await showDatePicker(
       context: context,
       locale: const Locale('pt', 'BR'),
@@ -58,6 +70,7 @@ class _CadastrarEventoScreenState extends State<CadastrarEventoScreen> {
   }
 
   @override
+  /// Libera os controllers usados pelos campos do formulário.
   void dispose() {
     _disciplinaController.dispose();
     _atividadeController.dispose();
@@ -65,6 +78,7 @@ class _CadastrarEventoScreenState extends State<CadastrarEventoScreen> {
     super.dispose();
   }
 
+  /// Converte a data selecionada para o formato esperado pela API.
   String _toApiDate(DateTime date) {
     final year = date.year.toString().padLeft(4, '0');
     final month = date.month.toString().padLeft(2, '0');
@@ -72,38 +86,85 @@ class _CadastrarEventoScreenState extends State<CadastrarEventoScreen> {
     return '$year-$month-$day';
   }
 
-  Future<void> _saveEvent() async {
-    final nomeDisciplina = _disciplinaController.text.trim();
-    final descricaoAtividade = _atividadeController.text.trim();
+  /// Valida se um campo obrigatório recebeu algum valor.
+  String? _validateRequired(String? value, String message) {
+    if ((value ?? '').trim().isEmpty) {
+      return message;
+    }
 
-    if (nomeDisciplina.isEmpty || descricaoAtividade.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Preencha todos os campos do evento.')),
-      );
+    return null;
+  }
+
+  /// Monta os botões de cancelar e salvar de forma responsiva.
+  Widget _buildActionButtons() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final useTwoColumns =
+            constraints.maxWidth >= AppStyles.actionWrapBreakpoint;
+        final buttonWidth = useTwoColumns
+            ? (constraints.maxWidth - AppStyles.actionSpacing) / 2
+            : constraints.maxWidth;
+
+        return Wrap(
+          spacing: AppStyles.actionSpacing,
+          runSpacing: AppStyles.actionSpacing,
+          children: [
+            SizedBox(
+              width: buttonWidth,
+              child: OutlinedButton(
+                onPressed: _isSaving
+                    ? null
+                    : () {
+                        Navigator.pop(context);
+                      },
+                child: const Text('Cancelar'),
+              ),
+            ),
+            SizedBox(
+              width: buttonWidth,
+              child: FilledButton(
+                onPressed: _isSaving ? null : _saveEvent,
+                child: _isSaving
+                    ? const SizedBox(
+                        width: AppStyles.busyIndicatorSize,
+                        height: AppStyles.busyIndicatorSize,
+                        child: CircularProgressIndicator(
+                          strokeWidth: AppStyles.busyIndicatorStrokeWidth,
+                        ),
+                      )
+                    : Text(_isEditing ? 'Atualizar' : 'Salvar'),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Valida o formulário e envia os dados para criação ou edição.
+  Future<void> _saveEvent() async {
+    FocusScope.of(context).unfocus();
+    if (!_formKey.currentState!.validate()) {
       return;
     }
+
+    final nomeDisciplina = _disciplinaController.text.trim();
+    final descricaoAtividade = _atividadeController.text.trim();
 
     setState(() {
       _isSaving = true;
     });
 
     try {
-      final usuarioId = await SessionService.getUserId();
-      if (usuarioId == null) {
-        throw ApiException('Sessão não encontrada. Faça login novamente.');
-      }
-
       if (_isEditing) {
-        await _apiService.editarEvento(
+        await _eventService.editarEvento(
           eventoId: widget.evento!.id,
-          usuarioId: usuarioId,
           nomeDisciplina: nomeDisciplina,
           descricaoAtividade: descricaoAtividade,
           dataEntrega: _toApiDate(_selectedDate),
         );
       } else {
-        await _apiService.salvarEvento(
-          usuarioId: usuarioId,
+        await _eventService.salvarEvento(
           nomeDisciplina: nomeDisciplina,
           descricaoAtividade: descricaoAtividade,
           dataEntrega: _toApiDate(_selectedDate),
@@ -141,104 +202,92 @@ class _CadastrarEventoScreenState extends State<CadastrarEventoScreen> {
   }
 
   @override
+  /// Monta a tela do formulário de evento com seus campos principais.
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        // Barra superior com título do fluxo atual.
         title: Text(_isEditing ? 'Editar evento' : 'Cadastrar evento'),
       ),
-      body: SingleChildScrollView(
-        padding: AppStyles.pagePadding,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Campo para informar o título do evento.
-            _buildInputField(
-              label: 'Título',
-              hint: 'Digite o título do evento',
-              controller: _disciplinaController,
-            ),
-            AppStyles.gap20,
-
-            // Campo para informar a descrição da atividade.
-            _buildInputField(
-              label: 'Descrição da atividade',
-              hint: 'Digite uma breve descrição da atividade',
-              controller: _atividadeController,
-            ),
-            AppStyles.gap20,
-
-            // Rótulo da seção de seleção de data.
-            Text(
-              'Data de entrega',
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            AppStyles.gap8,
-            // Campo somente leitura que abre o seletor de data.
-            TextFormField(
-              controller: _dateController,
-              readOnly: true,
-              onTap: _pickDate,
-              decoration: InputDecoration(
-                hintText: 'Selecione uma data',
-                suffixIcon: const Icon(Icons.calendar_today),
-              ),
-            ),
-            AppStyles.gap24,
-            // Ações de cancelar ou salvar o evento informado.
-            Row(
+      body: SafeArea(
+        child: AppLayout(
+          width: AppLayoutWidth.content,
+          scrollable: true,
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: _isSaving
-                        ? null
-                        : () {
-                            Navigator.pop(context);
-                          },
-                    child: const Text('Cancelar'),
+                _buildInputField(
+                  label: 'Título',
+                  hint: 'Digite o título do evento',
+                  controller: _disciplinaController,
+                  validator: (value) =>
+                      _validateRequired(value, 'Informe o título do evento.'),
+                ),
+                AppStyles.gap20,
+                _buildInputField(
+                  label: 'Descrição da atividade',
+                  hint: 'Digite uma breve descrição da atividade',
+                  controller: _atividadeController,
+                  validator: (value) => _validateRequired(
+                    value,
+                    'Informe a descrição da atividade.',
                   ),
                 ),
-                AppStyles.gapWidth12,
-                Expanded(
-                  child: FilledButton(
-                    onPressed: _isSaving ? null : _saveEvent,
-                    child: Text(_isEditing ? 'Atualizar' : 'Salvar'),
+                AppStyles.gap20,
+                Text(
+                  'Data de entrega',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                AppStyles.gap8,
+                TextFormField(
+                  controller: _dateController,
+                  readOnly: true,
+                  onTap: _pickDate,
+                  validator: (value) =>
+                      _validateRequired(value, 'Informe a data de entrega.'),
+                  decoration: InputDecoration(
+                    hintText: 'Selecione uma data',
+                    suffixIcon: IconButton(
+                      onPressed: _pickDate,
+                      tooltip: 'Selecionar data',
+                      icon: const Icon(Icons.calendar_today),
+                    ),
                   ),
                 ),
+                AppStyles.gap24,
+                _buildActionButtons(),
               ],
             ),
-            if (_isSaving) ...[
-              AppStyles.gap16,
-              // Indicador exibido durante o envio do evento para a API.
-              const Center(child: CircularProgressIndicator()),
-            ],
-          ],
+          ),
         ),
       ),
     );
   }
 
+  /// Cria um campo com rótulo, validação e ação rápida de limpeza.
   Widget _buildInputField({
     required String label,
     required String hint,
     required TextEditingController controller,
+    required String? Function(String?) validator,
   }) {
-    // Componente reutilizável para campos de texto do formulário.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: Theme.of(context).textTheme.titleSmall),
         AppStyles.gap8,
-        TextField(
+        TextFormField(
           controller: controller,
+          validator: validator,
           decoration: InputDecoration(
             hintText: hint,
-            suffixIcon: GestureDetector(
-              onTap: () => controller.clear(),
-              child: const Padding(
-                padding: AppStyles.compactPadding,
-                child: Icon(Icons.clear),
-              ),
+            suffixIcon: IconButton(
+              onPressed: () {
+                controller.clear();
+              },
+              tooltip: 'Limpar campo',
+              icon: const Icon(Icons.clear),
             ),
           ),
         ),

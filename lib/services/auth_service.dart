@@ -2,31 +2,29 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import '../core/app_config.dart';
 import '../models/auth_response.dart';
-import 'api_service.dart';
+import 'api_exception.dart';
+import 'api_support.dart';
+import 'session_service.dart';
 
+/// Centraliza a autenticação do usuário e a abertura da sessão local.
 class AuthService {
   AuthService({http.Client? client}) : _client = client ?? http.Client();
 
   final http.Client _client;
 
-  Uri _uri(String path) {
-    final base = Uri.parse(AppConfig.apiBaseUrl);
-    return base.replace(path: '${base.path}$path'.replaceAll('//', '/'));
-  }
-
+  /// Faz a chamada de login e valida a resposta recebida da API.
   Future<AuthResponse> login({
     required String email,
     required String senha,
   }) async {
     final response = await _client.post(
-      _uri('/auth'),
+      buildApiUri('/auth'),
       headers: const {'Content-Type': 'application/json'},
       body: jsonEncode({'email': email, 'senha': senha, 'acao': 'login'}),
     );
 
-    final data = _decodeResponse(response);
+    final data = decodeApiResponse(response);
     if ((data['status'] ?? '').toString() != 'sucesso') {
       throw ApiException(
         (data['mensagem'] ?? 'Não foi possível fazer login.').toString(),
@@ -34,28 +32,26 @@ class AuthService {
       );
     }
 
-    return AuthResponse.fromJson(data);
-  }
-
-  Map<String, dynamic> _decodeResponse(http.Response response) {
-    Map<String, dynamic> data;
-
     try {
-      data = jsonDecode(response.body) as Map<String, dynamic>;
+      return AuthResponse.fromJson(data);
     } on FormatException {
       throw ApiException(
-        'Resposta inválida do servidor.',
+        'Resposta invalida do servidor.',
         statusCode: response.statusCode,
       );
     }
+  }
 
-    if (response.statusCode >= 400) {
-      throw ApiException(
-        (data['mensagem'] ?? 'Erro na comunicação com o servidor.').toString(),
-        statusCode: response.statusCode,
-      );
-    }
-
-    return data;
+  /// Realiza o login e salva a sessão do usuário no dispositivo.
+  Future<AuthResponse> signIn({
+    required String email,
+    required String senha,
+  }) async {
+    final authResponse = await login(email: email, senha: senha);
+    await SessionService.saveUserSession(
+      userId: authResponse.userId,
+      email: authResponse.email,
+    );
+    return authResponse;
   }
 }
