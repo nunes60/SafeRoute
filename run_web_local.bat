@@ -1,7 +1,24 @@
 @echo off
 setlocal
 
-cd /d "%~dp0web"
+cd /d "%~dp0"
+
+where flutter >nul 2>nul
+if %errorlevel% neq 0 (
+  echo Flutter nao foi encontrado. Adicione o Flutter ao PATH e tente novamente.
+  pause
+  exit /b 1
+)
+
+echo Gerando a versao web atualizada...
+call flutter build web
+if %errorlevel% neq 0 (
+  echo Falha ao gerar build/web.
+  pause
+  exit /b %errorlevel%
+)
+
+cd /d "%~dp0build\web"
 
 where python >nul 2>nul
 if %errorlevel%==0 (

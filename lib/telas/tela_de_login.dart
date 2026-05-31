@@ -48,6 +48,7 @@ class _LoginPageState extends State<LoginPage> {
     final errorMessage = message.trim().isEmpty
         ? 'Erro inesperado ao autenticar.'
         : message.trim();
+    final colorScheme = Theme.of(context).colorScheme;
 
     setState(() {
       _submitError = errorMessage;
@@ -55,8 +56,12 @@ class _LoginPageState extends State<LoginPage> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(errorMessage),
-        backgroundColor: Colors.red.shade700,
+        content: Text(
+          errorMessage,
+          style: TextStyle(color: colorScheme.onError),
+        ),
+        backgroundColor: colorScheme.error,
+        showCloseIcon: true,
       ),
     );
   }
@@ -65,12 +70,12 @@ class _LoginPageState extends State<LoginPage> {
     final email = (value ?? '').trim();
 
     if (email.isEmpty) {
-      return 'Informe seu email.';
+      return 'Informe seu e-mail.';
     }
 
     final emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
     if (!emailRegex.hasMatch(email)) {
-      return 'Digite um email valido.';
+      return 'Digite um e-mail válido.';
     }
 
     return null;
@@ -107,20 +112,17 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(auth.message),
-          backgroundColor: Colors.green.shade600,
-        ),
-      );
-      await Future.delayed(const Duration(milliseconds: 350));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(auth.message)));
+      await Future.delayed(AppStyles.feedbackDelay);
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, homeRoute);
     } on ApiException catch (e) {
       if (!mounted) return;
       _showAuthError(
         e.message.isEmpty
-            ? 'Nao foi possivel entrar. Tente novamente.'
+            ? 'Não foi possível entrar. Tente novamente.'
             : e.message,
       );
     } catch (e) {
@@ -144,13 +146,17 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
           padding: AppStyles.pagePadding,
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
+              constraints: const BoxConstraints(
+                maxWidth: AppStyles.contentMaxWidth,
+              ),
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -160,7 +166,8 @@ class _LoginPageState extends State<LoginPage> {
                     Text(
                       'SafeRoute',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(
                             fontSize: AppStyles.headerSize,
                             fontWeight: FontWeight.w600,
                           ),
@@ -170,8 +177,8 @@ class _LoginPageState extends State<LoginPage> {
                       'Acesse sua conta para continuar',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontSize: AppStyles.subtitleSize,
-                          ),
+                        fontSize: AppStyles.subtitleSize,
+                      ),
                     ),
                     AppStyles.gap32,
                     TextFormField(
@@ -180,8 +187,8 @@ class _LoginPageState extends State<LoginPage> {
                       textInputAction: TextInputAction.next,
                       validator: _validateEmail,
                       decoration: const InputDecoration(
-                        labelText: 'Email',
-                        hintText: 'Digite seu email',
+                        labelText: 'E-mail',
+                        hintText: 'Digite seu e-mail',
                       ),
                     ),
                     AppStyles.gap16,
@@ -215,31 +222,32 @@ class _LoginPageState extends State<LoginPage> {
                     if (_submitError != null) ...[
                       AppStyles.gap16,
                       Container(
-                        color: Colors.red.shade50,
-                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: colorScheme.errorContainer,
+                          borderRadius: BorderRadius.circular(
+                            AppStyles.cardRadius,
+                          ),
+                        ),
+                        padding: AppStyles.compactPadding,
                         child: Text(
                           _submitError!,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Colors.red.shade900,
-                              ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: colorScheme.onErrorContainer),
                         ),
                       ),
                     ],
                     AppStyles.gap24,
                     FilledButton(
                       onPressed: _isLoading ? null : _submit,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        child: _isLoading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Text('Entrar'),
-                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: AppStyles.busyIndicatorSize,
+                              height: AppStyles.busyIndicatorSize,
+                              child: CircularProgressIndicator(
+                                strokeWidth: AppStyles.busyIndicatorStrokeWidth,
+                              ),
+                            )
+                          : const Text('Entrar'),
                     ),
                   ],
                 ),

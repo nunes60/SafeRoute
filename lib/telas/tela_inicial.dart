@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/app_styles.dart';
+import '../core/br_date_formatter.dart';
 import '../main.dart';
 import '../models/evento.dart';
 import '../services/api_service.dart';
@@ -38,12 +39,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     Navigator.pushNamedAndRemoveUntil(context, loginRoute, (route) => false);
   }
 
-  String _formatDate(DateTime date) {
-    final day = date.day.toString().padLeft(2, '0');
-    final month = date.month.toString().padLeft(2, '0');
-    return '$day/$month/${date.year}';
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -67,18 +62,18 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               children: [
                 // Cabeçalho principal da tela inicial.
                 Text(
-                  'Bem-vindo',
+                  'Boas-vindas',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontSize: AppStyles.headerSize,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    fontSize: AppStyles.headerSize,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 AppStyles.gap8,
                 Text(
-                  'Visualize seus destaques abaixo',
+                  'Confira seus destaques abaixo',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontSize: AppStyles.subtitleSize,
-                      ),
+                    fontSize: AppStyles.subtitleSize,
+                  ),
                 ),
                 AppStyles.gap24,
                 // Bloco que carrega os 3 próximos eventos via API.
@@ -115,7 +110,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     final events = snapshot.data ?? const [];
                     if (events.isEmpty) {
                       // Estado vazio quando não há eventos próximos.
-                      return const Text('Nenhum compromisso próximo encontrado.');
+                      return const Text(
+                        'Nenhum compromisso próximo encontrado.',
+                      );
                     }
 
                     // Lista visual dos cards de destaque.
@@ -123,9 +120,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       children: [
                         for (final event in events)
                           Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
+                            padding: AppStyles.bottomPadding16,
                             child: _buildHighlightCard(
-                              date: 'Até ${_formatDate(event.dataEntrega)}',
+                              date:
+                                  'Até ${BrDateFormatter.formatShort(event.dataEntrega)}',
                               title: event.nomeDisciplina,
                               description: event.descricaoAtividade,
                             ),
@@ -177,12 +175,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         title: Text(
           title,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontSize: AppStyles.titleSize,
-                fontWeight: FontWeight.w600,
-              ),
+            fontSize: AppStyles.titleSize,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         subtitle: Padding(
-          padding: const EdgeInsets.only(top: 8),
+          padding: AppStyles.topPadding8,
           child: Text('$date\n$description'),
         ),
         isThreeLine: true,

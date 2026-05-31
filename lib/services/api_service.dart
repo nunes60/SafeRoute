@@ -83,7 +83,61 @@ class ApiService {
       );
     }
 
-    return _parseInt(data['evento_id']);
+    return _parseEventoId(data);
+  }
+
+  Future<int> editarEvento({
+    required int eventoId,
+    required int usuarioId,
+    required String nomeDisciplina,
+    required String descricaoAtividade,
+    required String dataEntrega,
+  }) async {
+    final response = await _client.post(
+      _uri('/editar_evento'),
+      headers: const {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'evento_id': eventoId,
+        'usuario_id': usuarioId,
+        'nome_disciplina': nomeDisciplina,
+        'descricao_atividade': descricaoAtividade,
+        'data_entrega': dataEntrega,
+      }),
+    );
+
+    final data = _decodeResponse(response);
+    if ((data['status'] ?? '').toString() != 'sucesso') {
+      throw ApiException(
+        (data['mensagem'] ?? 'Falha ao editar o evento.').toString(),
+        statusCode: response.statusCode,
+      );
+    }
+
+    return _parseEventoId(data);
+  }
+
+  Future<int> excluirEvento({
+    required int eventoId,
+    required int usuarioId,
+  }) async {
+    final response = await _client.post(
+      _uri('/excluir_evento'),
+      headers: const {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'evento_id': eventoId,
+        'usuario_id': usuarioId,
+      }),
+    );
+
+    final data = _decodeResponse(response);
+    if ((data['status'] ?? '').toString() != 'sucesso') {
+      throw ApiException(
+        (data['mensagem'] ?? 'Falha ao excluir o evento.').toString(),
+        statusCode: response.statusCode,
+      );
+    }
+
+    return _parseEventoId(data);
   }
 
   Map<String, dynamic> _decodeResponse(http.Response response) {
@@ -111,5 +165,9 @@ class ApiService {
   int _parseInt(dynamic value) {
     if (value is int) return value;
     return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  int _parseEventoId(Map<String, dynamic> data) {
+    return _parseInt(data['evento_id'] ?? data['id_evento'] ?? data['id']);
   }
 }

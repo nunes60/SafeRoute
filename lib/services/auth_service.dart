@@ -29,7 +29,7 @@ class AuthService {
     final data = _decodeResponse(response);
     if ((data['status'] ?? '').toString() != 'sucesso') {
       throw ApiException(
-        (data['mensagem'] ?? 'Nao foi possivel fazer login.').toString(),
+        (data['mensagem'] ?? 'Não foi possível fazer login.').toString(),
         statusCode: response.statusCode,
       );
     }
@@ -44,14 +44,14 @@ class AuthService {
       data = jsonDecode(response.body) as Map<String, dynamic>;
     } on FormatException {
       throw ApiException(
-        'Resposta invalida do servidor.',
+        'Resposta inválida do servidor.',
         statusCode: response.statusCode,
       );
     }
 
     if (response.statusCode >= 400) {
       throw ApiException(
-        (data['mensagem'] ?? 'Erro na comunicacao com o servidor.').toString(),
+        (data['mensagem'] ?? 'Erro na comunicação com o servidor.').toString(),
         statusCode: response.statusCode,
       );
     }

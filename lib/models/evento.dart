@@ -13,7 +13,7 @@ class Evento {
 
   factory Evento.fromJson(Map<String, dynamic> json) {
     return Evento(
-      id: _parseInt(json['id']),
+      id: _parseInt(json['evento_id'] ?? json['id_evento'] ?? json['id']),
       nomeDisciplina: (json['nome_disciplina'] ?? '').toString(),
       descricaoAtividade: (json['descricao_atividade'] ?? '').toString(),
       dataEntrega: DateTime.tryParse((json['data_entrega'] ?? '').toString()) ??

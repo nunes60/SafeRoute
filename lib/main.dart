@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:dynamic_color/dynamic_color.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
+import 'core/app_theme.dart';
 import 'services/session_service.dart';
 import 'telas/telas.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('pt_BR');
   runApp(const SafeRouteApp());
 }
 
@@ -17,18 +23,25 @@ class SafeRouteApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'SafeRoute',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-      ),
-      home: const AppStartScreen(),
-      routes: {
-        loginRoute: (context) => const LoginPage(),
-        homeRoute: (context) => const WelcomeScreen(),
-        eventsRoute: (context) => const EventListScreen(),
-        createEventRoute: (context) => const CadastrarEventoScreen(),
+    return DynamicColorBuilder(
+      builder: (lightDynamicColor, darkDynamicColor) {
+        return MaterialApp(
+          title: 'SafeRoute',
+          debugShowCheckedModeBanner: false,
+          locale: const Locale('pt', 'BR'),
+          supportedLocales: const [Locale('pt', 'BR')],
+          localizationsDelegates: GlobalMaterialLocalizations.delegates,
+          theme: AppTheme.light(lightDynamicColor),
+          darkTheme: AppTheme.dark(darkDynamicColor),
+          themeMode: ThemeMode.system,
+          home: const AppStartScreen(),
+          routes: {
+            loginRoute: (context) => const LoginPage(),
+            homeRoute: (context) => const WelcomeScreen(),
+            eventsRoute: (context) => const EventListScreen(),
+            createEventRoute: (context) => const CadastrarEventoScreen(),
+          },
+        );
       },
     );
   }

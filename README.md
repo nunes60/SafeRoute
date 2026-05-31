@@ -12,13 +12,15 @@ _Em desenvolvimento._
 
 ## Como executar a versão web localmente
 
-Não abra `web/index.html` diretamente pelo explorador de arquivos. O Flutter Web precisa ser servido por HTTP; quando a página é aberta com `file://`, o navegador bloqueia o service worker, o manifest e os arquivos em `assets/`, gerando erros de CORS.
+Não abra `web/index.html` diretamente pelo explorador de arquivos. O diretório `web/` é o código-fonte da casca web do Flutter; a versão executável precisa ser gerada e servida por HTTP.
 
 No Windows, execute:
 
 ```bat
 run_web_local.bat
 ```
+
+O script gera uma nova build em `build/web` e então sobe um servidor HTTP local nessa pasta.
 
 Também é possível rodar pelo Flutter:
 

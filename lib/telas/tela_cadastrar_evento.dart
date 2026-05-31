@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../core/app_styles.dart';
+import '../core/br_date_formatter.dart';
+import '../models/evento.dart';
 import '../services/api_service.dart';
 import '../services/session_service.dart';
 
 class CadastrarEventoScreen extends StatefulWidget {
-  const CadastrarEventoScreen({super.key});
+  const CadastrarEventoScreen({super.key, this.evento});
+
+  final Evento? evento;
 
   @override
   State<CadastrarEventoScreen> createState() => _CadastrarEventoScreenState();
@@ -14,20 +18,33 @@ class CadastrarEventoScreen extends StatefulWidget {
 class _CadastrarEventoScreenState extends State<CadastrarEventoScreen> {
   final TextEditingController _disciplinaController = TextEditingController();
   final TextEditingController _atividadeController = TextEditingController();
+  final TextEditingController _dateController = TextEditingController();
   final _apiService = ApiService();
 
   DateTime _selectedDate = DateTime.now();
   bool _isSaving = false;
 
-  String _formatDateBr(DateTime date) {
-    final day = date.day.toString().padLeft(2, '0');
-    final month = date.month.toString().padLeft(2, '0');
-    return '$day/$month/${date.year}';
+  bool get _isEditing => widget.evento != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_isEditing) {
+      _disciplinaController.text = widget.evento!.nomeDisciplina;
+      _atividadeController.text = widget.evento!.descricaoAtividade;
+      _selectedDate = widget.evento!.dataEntrega;
+    }
+    _syncSelectedDate();
+  }
+
+  void _syncSelectedDate() {
+    _dateController.text = BrDateFormatter.formatShort(_selectedDate);
   }
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
+      locale: const Locale('pt', 'BR'),
       initialDate: _selectedDate,
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
@@ -36,6 +53,7 @@ class _CadastrarEventoScreenState extends State<CadastrarEventoScreen> {
     if (picked == null) return;
     setState(() {
       _selectedDate = picked;
+      _syncSelectedDate();
     });
   }
 
@@ -43,6 +61,7 @@ class _CadastrarEventoScreenState extends State<CadastrarEventoScreen> {
   void dispose() {
     _disciplinaController.dispose();
     _atividadeController.dispose();
+    _dateController.dispose();
     super.dispose();
   }
 
@@ -74,23 +93,39 @@ class _CadastrarEventoScreenState extends State<CadastrarEventoScreen> {
         throw ApiException('Sessão não encontrada. Faça login novamente.');
       }
 
-      await _apiService.salvarEvento(
-        usuarioId: usuarioId,
-        nomeDisciplina: nomeDisciplina,
-        descricaoAtividade: descricaoAtividade,
-        dataEntrega: _toApiDate(_selectedDate),
-      );
+      if (_isEditing) {
+        await _apiService.editarEvento(
+          eventoId: widget.evento!.id,
+          usuarioId: usuarioId,
+          nomeDisciplina: nomeDisciplina,
+          descricaoAtividade: descricaoAtividade,
+          dataEntrega: _toApiDate(_selectedDate),
+        );
+      } else {
+        await _apiService.salvarEvento(
+          usuarioId: usuarioId,
+          nomeDisciplina: nomeDisciplina,
+          descricaoAtividade: descricaoAtividade,
+          dataEntrega: _toApiDate(_selectedDate),
+        );
+      }
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Evento cadastrado com sucesso.')),
+        SnackBar(
+          content: Text(
+            _isEditing
+                ? 'Evento atualizado com sucesso.'
+                : 'Evento cadastrado com sucesso.',
+          ),
+        ),
       );
       Navigator.pop(context, true);
     } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -109,10 +144,8 @@ class _CadastrarEventoScreenState extends State<CadastrarEventoScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        // Barra superior com título da tela de cadastro.
-        title: const Text(
-          'Cadastrar evento',
-        ),
+        // Barra superior com título do fluxo atual.
+        title: Text(_isEditing ? 'Editar evento' : 'Cadastrar evento'),
       ),
       body: SingleChildScrollView(
         padding: AppStyles.pagePadding,
@@ -121,16 +154,16 @@ class _CadastrarEventoScreenState extends State<CadastrarEventoScreen> {
           children: [
             // Campo para informar a disciplina.
             _buildInputField(
-              label: 'Nome da Disciplina',
-              hint: 'Digite a disciplina aqui',
+              label: 'Nome da disciplina',
+              hint: 'Digite o nome da disciplina',
               controller: _disciplinaController,
             ),
             AppStyles.gap20,
 
             // Campo para informar a descrição da atividade.
             _buildInputField(
-              label: 'Descrição da Atividade',
-              hint: 'Digite uma rápida descrição da atividade',
+              label: 'Descrição da atividade',
+              hint: 'Digite uma breve descrição da atividade',
               controller: _atividadeController,
             ),
             AppStyles.gap20,
@@ -143,14 +176,12 @@ class _CadastrarEventoScreenState extends State<CadastrarEventoScreen> {
             AppStyles.gap8,
             // Campo somente leitura que abre o seletor de data.
             TextFormField(
+              controller: _dateController,
               readOnly: true,
               onTap: _pickDate,
               decoration: InputDecoration(
-                hintText: 'Selecione a data',
+                hintText: 'Selecione uma data',
                 suffixIcon: const Icon(Icons.calendar_today),
-                border: const OutlineInputBorder(),
-                filled: true,
-                labelText: _formatDateBr(_selectedDate),
               ),
             ),
             AppStyles.gap24,
@@ -167,11 +198,11 @@ class _CadastrarEventoScreenState extends State<CadastrarEventoScreen> {
                     child: const Text('Cancelar'),
                   ),
                 ),
-                const SizedBox(width: 12),
+                AppStyles.gapWidth12,
                 Expanded(
                   child: FilledButton(
                     onPressed: _isSaving ? null : _saveEvent,
-                    child: const Text('Salvar'),
+                    child: Text(_isEditing ? 'Atualizar' : 'Salvar'),
                   ),
                 ),
               ],
@@ -196,10 +227,7 @@ class _CadastrarEventoScreenState extends State<CadastrarEventoScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: Theme.of(context).textTheme.titleSmall,
-        ),
+        Text(label, style: Theme.of(context).textTheme.titleSmall),
         AppStyles.gap8,
         TextField(
           controller: controller,
@@ -208,12 +236,10 @@ class _CadastrarEventoScreenState extends State<CadastrarEventoScreen> {
             suffixIcon: GestureDetector(
               onTap: () => controller.clear(),
               child: const Padding(
-                padding: EdgeInsets.all(12),
+                padding: AppStyles.compactPadding,
                 child: Icon(Icons.clear),
               ),
             ),
-            border: const OutlineInputBorder(),
-            filled: true,
           ),
         ),
       ],
