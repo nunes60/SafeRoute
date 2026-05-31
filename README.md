@@ -90,3 +90,22 @@ flutter build apk --release
 Se `android/key.properties` não existir ou estiver incompleto, o build de release vai falhar com uma mensagem de configuração.
 
 Se uma versão antiga foi assinada com outra chave, ela não poderá ser atualizada por cima. Nesse caso, só há duas opções: usar exatamente a mesma keystore antiga ou desinstalar a versão anterior antes de instalar a nova.
+
+### 6. Configurar o GitHub Actions para build de release
+
+O workflow de Android agora espera estes secrets no repositório do GitHub:
+
+- `ANDROID_KEYSTORE_BASE64`
+- `ANDROID_KEYSTORE_PASSWORD`
+- `ANDROID_KEY_ALIAS`
+- `ANDROID_KEY_PASSWORD`
+
+No runner, o workflow recria `android/upload-keystore.jks` e `android/key.properties` antes do `flutter build apk --release`.
+
+Para gerar o conteúdo de `ANDROID_KEYSTORE_BASE64` no Windows PowerShell:
+
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("android/upload-keystore.jks"))
+```
+
+Em pull requests, o CI faz apenas `flutter build apk --debug`, então não depende desses secrets.

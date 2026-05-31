@@ -50,14 +50,55 @@ jobs:
             flutter create --platforms=android .
           fi
 
-      - name: Build release APK
-        run: flutter build apk --release
+      - name: Configure Android release signing
+        if: github.event_name != 'pull_request'
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          missing=0
+
+          for secret_name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "${!secret_name}" ]; then
+              echo "::error title=Missing Android signing secret::$secret_name is not configured."
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/upload-keystore.jks
+          cat > android/key.properties <<EOF
+          storePassword=$ANDROID_KEYSTORE_PASSWORD
+          keyPassword=$ANDROID_KEY_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          storeFile=upload-keystore.jks
+          EOF
+
+      - name: Build Android APK
+        id: build_android
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            flutter build apk --debug
+            echo "apk_path=build/app/outputs/flutter-apk/app-debug.apk" >> "$GITHUB_OUTPUT"
+          else
+            flutter build apk --release
+            echo "apk_path=build/app/outputs/flutter-apk/app-release.apk" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Clean up Android signing files
+        if: always() && github.event_name != 'pull_request'
+        run: rm -f android/key.properties android/upload-keystore.jks
 
       - name: Upload Android build artifact
         uses: actions/upload-artifact@v4
         with:
           name: android-apk-raw
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: ${{ steps.build_android.outputs.apk_path }}
           if-no-files-found: error
 
   build-web:
