@@ -132,7 +132,9 @@ jobs:
 
       - name: Compute web image name
         id: web_image
-        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}-web" >> "$GITHUB_OUTPUT"
+        run: |
+          IMAGE_REPO="$(printf '%s' "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')"
+          echo "name=ghcr.io/${IMAGE_REPO}-web" >> "$GITHUB_OUTPUT"
 
       - name: Extract Docker metadata
         id: web_meta
