@@ -109,3 +109,12 @@ Para gerar o conteúdo de `ANDROID_KEYSTORE_BASE64` no Windows PowerShell:
 ```
 
 Em pull requests, o CI faz apenas `flutter build apk --debug`, então não depende desses secrets.
+
+## Imagem Docker da versão web (GHCR)
+
+No workflow `Flutter Build and Release`, o job de web agora também gera uma imagem Docker com o conteúdo de `build/web` e publica no GitHub Container Registry:
+
+- `ghcr.io/<owner>/<repo>-web`
+- tags por branch, tag Git, SHA e `latest` (somente branch padrão)
+
+Em `pull_request`, a imagem é apenas buildada para validação e não é publicada.
