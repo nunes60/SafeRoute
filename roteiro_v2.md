@@ -117,6 +117,7 @@ final response = await _client.post(
 
 final data = decodeApiResponse(response);
 
+final authResponse = await login(email: email, senha: senha);
 await SessionService.saveUserSession(
   userId: authResponse.userId,
   email: authResponse.email,
