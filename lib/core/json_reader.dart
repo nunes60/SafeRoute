@@ -51,7 +51,7 @@ class JsonReader {
     throw FormatException('Campo invalido: $fieldName');
   }
 
-  /// Lê um objeto obrigatório do JSON e normaliza para Map<String, dynamic>.
+  /// Lê um objeto obrigatório do JSON e normaliza para `Map<String, dynamic>`.
   static Map<String, dynamic> requiredObject(
     Map<String, dynamic> json,
     String key,

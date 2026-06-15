@@ -144,7 +144,7 @@ class ApiService {
     return _parseInt(data['evento_id'] ?? data['id_evento'] ?? data['id']);
   }
 
-  /// Converte um item dinâmico da lista em Map<String, dynamic>.
+  /// Converte um item dinâmico da lista em `Map<String, dynamic>`.
   Map<String, dynamic> _asStringDynamicMap(dynamic item) {
     if (item is Map<String, dynamic>) {
       return item;
