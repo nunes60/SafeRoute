@@ -6,6 +6,8 @@ Use como fala guiada. Em cada etapa, primeiro aparece o que deve ser mostrado na
 
 Para diminuir o peso dos termos técnicos, os blocos "O que acontece no fundo" usam este formato: explicação simples | detalhe técnico. Na apresentação, fale principalmente a primeira parte. O detalhe depois da barra serve como cola caso você queira mostrar que sabe exatamente onde aquilo acontece no código.
 
+Nesta versão, alguns tópicos também trazem um bloco "Trecho direto do código". A ideia é que você possa literalmente apontar para um recorte real do arquivo enquanto explica o fluxo.
+
 ---
 
 ## 1. Abertura do aplicativo
@@ -29,6 +31,27 @@ Abrir o SafeRoute no navegador, emulador ou dispositivo.
 - Uma tela de decisão verifica se já existe usuário logado | `AppStartScreen` usa um `FutureBuilder` esperando `SessionService.hasSession()`.
 - Se encontrar uma sessão válida, entra direto na home | abre `WelcomeScreen`.
 - Se não encontrar sessão, manda o usuário para o login | abre `LoginPage`.
+
+### Trecho direto do código
+
+```dart
+return FutureBuilder<bool>(
+  future: SessionService.hasSession(),
+  builder: (context, snapshot) {
+    if (snapshot.connectionState != ConnectionState.done) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (snapshot.data == true) {
+      return const WelcomeScreen();
+    }
+
+    return const LoginPage();
+  },
+);
+```
 
 ---
 
@@ -83,6 +106,23 @@ Digitar credenciais válidas e clicar em Entrar.
 - A tela mostra uma confirmação rápida para o usuário | exibe um `SnackBar` com a mensagem da API.
 - Depois da confirmação, o app troca login pela home | navega para `homeRoute` com `pushReplacementNamed`.
 
+### Trecho direto do código
+
+```dart
+final response = await _client.post(
+  buildApiUri('/auth'),
+  headers: const {'Content-Type': 'application/json'},
+  body: jsonEncode({'email': email, 'senha': senha, 'acao': 'login'}),
+);
+
+final data = decodeApiResponse(response);
+
+await SessionService.saveUserSession(
+  userId: authResponse.userId,
+  email: authResponse.email,
+);
+```
+
 ---
 
 ## 4. Login com erro ou dados inválidos
@@ -135,6 +175,24 @@ Depois do login, mostrar a tela "Início" com "Boas-vindas", destaques e botões
 - A resposta é conferida antes de virar tela | `decodeApiResponse()` valida a resposta.
 - Cada item recebido vira um evento organizado | `Evento.fromJson()` converte cada evento recebido.
 - A tela escolhe se mostra loading, erro, vazio ou cards | `FutureBuilder` decide o estado visual.
+
+### Trecho direto do código
+
+```dart
+void initState() {
+  super.initState();
+  _highlightsFuture = _loadHighlights();
+}
+
+Future<List<Evento>> _loadHighlights() async {
+  return _eventService.listEventos(limit: 3);
+}
+
+Future<List<Evento>> listEventos({int? limit}) async {
+  final session = await _requireSession();
+  return _apiService.listarEventos(usuarioId: session.userId, limit: limit);
+}
+```
 
 ---
 
@@ -206,6 +264,42 @@ Mostrar a lista completa de eventos. Se aplicável, mencionar os estados mesmo q
 - Se der erro, aparece mensagem e opção de tentar de novo | `_error != null` mostra texto e botão "Tentar novamente".
 - Se não houver eventos, aparece o estado vazio | `_events.isEmpty` mostra "Nenhum evento cadastrado.".
 - Se houver eventos, a tela monta a lista ou grade | `_buildEventsContent()` renderiza o conteúdo.
+
+### Trecho direto do código
+
+```dart
+Widget _buildBody() {
+  if (_isLoading) {
+    return const Center(child: CircularProgressIndicator());
+  }
+
+  if (_error != null) {
+    return AppLayout(
+      width: AppLayoutWidth.content,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(_error!, textAlign: TextAlign.center),
+          AppStyles.gap12,
+          OutlinedButton(
+            onPressed: _loadEvents,
+            child: const Text('Tentar novamente'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  if (_events.isEmpty) {
+    return const AppLayout(
+      width: AppLayoutWidth.content,
+      child: Center(child: Text('Nenhum evento cadastrado.')),
+    );
+  }
+
+  return _buildEventsContent();
+}
+```
 
 ---
 
@@ -279,6 +373,25 @@ Preencher título, descrição e abrir o seletor de data.
 - O texto visível é atualizado no padrão brasileiro | `_syncSelectedDate()` usa `BrDateFormatter.formatShort()`.
 - Antes de enviar, a data vira formato aceito pela API | `_toApiDate()` converte para `yyyy-MM-dd`.
 
+### Trecho direto do código
+
+```dart
+final picked = await showDatePicker(
+  context: context,
+  locale: const Locale('pt', 'BR'),
+  initialDate: _selectedDate,
+  firstDate: DateTime(2020),
+  lastDate: DateTime(2030),
+);
+
+String _toApiDate(DateTime date) {
+  final year = date.year.toString().padLeft(4, '0');
+  final month = date.month.toString().padLeft(2, '0');
+  final day = date.day.toString().padLeft(2, '0');
+  return '$year-$month-$day';
+}
+```
+
 ---
 
 ## 12. Validação do cadastro
@@ -327,6 +440,41 @@ Com os campos preenchidos, clicar em "Salvar".
 - Se der certo, o usuário recebe confirmação | a tela mostra `SnackBar`.
 - O formulário fecha e volta para a tela anterior | `Navigator.pop(context, true)`.
 
+### Trecho direto do código
+
+```dart
+if (_isEditing) {
+  final evento = widget.evento;
+  if (evento == null) {
+    throw const FormatException('Evento ausente para edicao.');
+  }
+
+  await _eventService.editarEvento(
+    eventoId: evento.id,
+    nomeDisciplina: nomeDisciplina,
+    descricaoAtividade: descricaoAtividade,
+    dataEntrega: _toApiDate(_selectedDate),
+  );
+} else {
+  await _eventService.salvarEvento(
+    nomeDisciplina: nomeDisciplina,
+    descricaoAtividade: descricaoAtividade,
+    dataEntrega: _toApiDate(_selectedDate),
+  );
+}
+
+final response = await _client.post(
+  buildApiUri('/salvar_evento'),
+  headers: const {'Content-Type': 'application/json'},
+  body: jsonEncode({
+    'usuario_id': usuarioId,
+    'nome_disciplina': nomeDisciplina,
+    'descricao_atividade': descricaoAtividade,
+    'data_entrega': dataEntrega,
+  }),
+);
+```
+
 ---
 
 ## 14. Atualização automática ao voltar do cadastro
@@ -373,6 +521,25 @@ Clicar em um card ou abrir o menu de ações e escolher "Editar".
 - Os campos já aparecem preenchidos com os dados atuais | `initState()` copia dados do evento para os controllers.
 - A data atual do evento também é carregada | `_selectedDate` recebe `evento.dataEntrega`.
 - A interface muda os textos para edição | mostra "Editar evento" e botão "Atualizar".
+
+### Trecho direto do código
+
+```dart
+bool get _isEditing => widget.evento != null;
+
+void initState() {
+  super.initState();
+  if (_isEditing) {
+    final evento = widget.evento;
+    if (evento != null) {
+      _disciplinaController.text = evento.nomeDisciplina;
+      _atividadeController.text = evento.descricaoAtividade;
+      _selectedDate = evento.dataEntrega;
+    }
+  }
+  _syncSelectedDate();
+}
+```
 
 ---
 
@@ -449,6 +616,30 @@ No card de um evento, abrir o menu e escolher "Excluir".
 - Se confirmar, o app marca aquele evento como ocupado | o id entra em `_busyEventIds`.
 - O card mostra que a exclusão está em andamento | exibe `CircularProgressIndicator` no lugar do menu.
 
+### Trecho direto do código
+
+```dart
+final shouldDelete = await showDialog<bool>(
+  context: context,
+  builder: (context) {
+    return AlertDialog(
+      title: const Text('Excluir evento'),
+      content: Text('Deseja excluir "$eventTitle" da sua lista?'),
+      actions: [
+        OutlinedButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, true),
+          child: const Text('Excluir'),
+        ),
+      ],
+    );
+  },
+);
+```
+
 ---
 
 ## 19. Confirmar exclusão
@@ -502,6 +693,22 @@ Transitar entre login, home, lista, cadastro, edição e voltar.
 - O botão Adicionar novo abre o formulário vazio | usa `Navigator.pushNamed(context, createEventRoute)`.
 - A edição abre o formulário já com um evento escolhido | usa `Navigator.of(context).push(MaterialPageRoute(...))`.
 - O logout limpa todo o histórico autenticado | usa `Navigator.pushNamedAndRemoveUntil(context, loginRoute, (route) => false)`.
+
+### Trecho direto do código
+
+```dart
+const String loginRoute = '/login';
+const String homeRoute = '/home';
+const String eventsRoute = '/events';
+const String createEventRoute = '/create-event';
+
+routes: {
+  loginRoute: (context) => const LoginPage(),
+  homeRoute: (context) => const WelcomeScreen(),
+  eventsRoute: (context) => const EventListScreen(),
+  createEventRoute: (context) => const CadastrarEventoScreen(),
+},
+```
 
 ---
 
