@@ -109,14 +109,6 @@ Digitar credenciais válidas e clicar em Entrar.
 ### Trecho direto do código
 
 ```dart
-final response = await _client.post(
-  buildApiUri('/auth'),
-  headers: const {'Content-Type': 'application/json'},
-  body: jsonEncode({'email': email, 'senha': senha, 'acao': 'login'}),
-);
-
-final data = decodeApiResponse(response);
-
 final authResponse = await login(email: email, senha: senha);
 await SessionService.saveUserSession(
   userId: authResponse.userId,
@@ -463,17 +455,6 @@ if (_isEditing) {
     dataEntrega: _toApiDate(_selectedDate),
   );
 }
-
-final response = await _client.post(
-  buildApiUri('/salvar_evento'),
-  headers: const {'Content-Type': 'application/json'},
-  body: jsonEncode({
-    'usuario_id': usuarioId,
-    'nome_disciplina': nomeDisciplina,
-    'descricao_atividade': descricaoAtividade,
-    'data_entrega': dataEntrega,
-  }),
-);
 ```
 
 ---
