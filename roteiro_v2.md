@@ -35,6 +35,7 @@ Abrir o SafeRoute no navegador, emulador ou dispositivo.
 ### Trecho direto do código
 
 ```dart
+// Arquivo: lib/main.dart
 return FutureBuilder<bool>(
   future: SessionService.hasSession(),
   builder: (context, snapshot) {
@@ -109,6 +110,7 @@ Digitar credenciais válidas e clicar em Entrar.
 ### Trecho direto do código
 
 ```dart
+// Arquivo: lib/services/auth_service.dart
 final authResponse = await login(email: email, senha: senha);
 await SessionService.saveUserSession(
   userId: authResponse.userId,
@@ -172,6 +174,7 @@ Depois do login, mostrar a tela "Início" com "Boas-vindas", destaques e botões
 ### Trecho direto do código
 
 ```dart
+// Arquivo: lib/telas/tela_inicial.dart
 void initState() {
   super.initState();
   _highlightsFuture = _loadHighlights();
@@ -261,6 +264,7 @@ Mostrar a lista completa de eventos. Se aplicável, mencionar os estados mesmo q
 ### Trecho direto do código
 
 ```dart
+// Arquivo: lib/telas/tela_de_eventos.dart
 Widget _buildBody() {
   if (_isLoading) {
     return const Center(child: CircularProgressIndicator());
@@ -369,6 +373,7 @@ Preencher título, descrição e abrir o seletor de data.
 ### Trecho direto do código
 
 ```dart
+// Arquivo: lib/telas/tela_cadastrar_evento.dart
 final picked = await showDatePicker(
   context: context,
   locale: const Locale('pt', 'BR'),
@@ -436,6 +441,7 @@ Com os campos preenchidos, clicar em "Salvar".
 ### Trecho direto do código
 
 ```dart
+// Arquivo: lib/telas/tela_cadastrar_evento.dart
 if (_isEditing) {
   final evento = widget.evento;
   if (evento == null) {
@@ -507,6 +513,7 @@ Clicar em um card ou abrir o menu de ações e escolher "Editar".
 ### Trecho direto do código
 
 ```dart
+// Arquivo: lib/telas/tela_cadastrar_evento.dart
 bool get _isEditing => widget.evento != null;
 
 void initState() {
@@ -601,6 +608,7 @@ No card de um evento, abrir o menu e escolher "Excluir".
 ### Trecho direto do código
 
 ```dart
+// Arquivo: lib/widgets/event_card.dart
 final shouldDelete = await showDialog<bool>(
   context: context,
   builder: (context) {
@@ -679,6 +687,7 @@ Transitar entre login, home, lista, cadastro, edição e voltar.
 ### Trecho direto do código
 
 ```dart
+// Arquivo: lib/main.dart
 const String loginRoute = '/login';
 const String homeRoute = '/home';
 const String eventsRoute = '/events';
