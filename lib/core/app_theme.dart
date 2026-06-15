@@ -9,7 +9,7 @@ class AppTheme {
   static const Color _lightSeedColor = Color(0xFF00639A);
   static const Color _darkSeedColor = Color(0xFF7CCBFF);
 
-  /// Gera o tema claro usando cores dinâmicas quando disponíveis.
+  /// Gera o tema claro usando paleta dinâmica quando disponível.
   static ThemeData light([ColorScheme? dynamicColorScheme]) {
     return _buildTheme(
       dynamicColorScheme ??
@@ -51,6 +51,7 @@ class AppTheme {
         fontWeight: FontWeight.w600,
       ),
     );
+    // Borda padrão reutilizada por estados normais/foco/erro dos campos.
     final outlineBorder = OutlineInputBorder(
       borderRadius: BorderRadius.circular(AppStyles.inputRadius),
       borderSide: BorderSide(color: colorScheme.outlineVariant),

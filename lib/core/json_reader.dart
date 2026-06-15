@@ -1,8 +1,8 @@
-/// Fornece leitura validada para campos usados nos modelos da API.
+/// Faz leitura validada de campos vindos do JSON da API.
 class JsonReader {
   const JsonReader._();
 
-  /// Lê um inteiro obrigatório aceitando diferentes nomes de chave.
+  /// Lê um inteiro obrigatório aceitando chaves alternativas.
   static int requiredInt(
     Map<String, dynamic> json,
     List<String> keys, {
@@ -36,7 +36,7 @@ class JsonReader {
     throw FormatException('Campo invalido: $fieldName');
   }
 
-  /// Lê uma data obrigatória e tenta convertê-la para DateTime.
+  /// Lê uma data obrigatória e converte para DateTime.
   static DateTime requiredDate(
     Map<String, dynamic> json,
     List<String> keys, {
@@ -51,7 +51,7 @@ class JsonReader {
     throw FormatException('Campo invalido: $fieldName');
   }
 
-  /// Lê um objeto obrigatório do JSON e normaliza seu tipo de mapa.
+  /// Lê um objeto obrigatório do JSON e normaliza para Map<String, dynamic>.
   static Map<String, dynamic> requiredObject(
     Map<String, dynamic> json,
     String key,

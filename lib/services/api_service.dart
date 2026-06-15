@@ -6,7 +6,7 @@ import '../models/evento.dart';
 import 'api_exception.dart';
 import 'api_support.dart';
 
-/// Executa as chamadas HTTP relacionadas ao cadastro de eventos.
+/// Executa chamadas HTTP relacionadas ao cadastro de eventos.
 class ApiService {
   ApiService({http.Client? client}) : _client = client ?? http.Client();
 
@@ -27,6 +27,7 @@ class ApiService {
       headers: const {'Content-Type': 'application/json'},
     );
 
+    // decodeApiResponse já valida JSON e status HTTP da resposta.
     final data = decodeApiResponse(response);
     if ((data['status'] ?? '').toString() != 'sucesso') {
       throw ApiException(
@@ -37,16 +38,9 @@ class ApiService {
 
     final eventos = (data['eventos'] as List<dynamic>? ?? const []);
     try {
+      // Converte cada item de JSON para o model tipado [Evento].
       return eventos
-          .map((item) {
-            if (item is Map<String, dynamic>) {
-              return Evento.fromJson(item);
-            }
-            if (item is Map) {
-              return Evento.fromJson(Map<String, dynamic>.from(item));
-            }
-            throw const FormatException('Evento invalido');
-          })
+          .map((item) => Evento.fromJson(_asStringDynamicMap(item)))
           .toList(growable: false);
     } on FormatException {
       throw ApiException(
@@ -82,6 +76,7 @@ class ApiService {
       );
     }
 
+    // Alguns endpoints retornam id com nomes diferentes de chave.
     return _parseEventoId(data);
   }
 
@@ -147,5 +142,18 @@ class ApiService {
   /// Extrai o identificador do evento a partir das chaves aceitas pela API.
   int _parseEventoId(Map<String, dynamic> data) {
     return _parseInt(data['evento_id'] ?? data['id_evento'] ?? data['id']);
+  }
+
+  /// Converte um item dinâmico da lista em Map<String, dynamic>.
+  Map<String, dynamic> _asStringDynamicMap(dynamic item) {
+    if (item is Map<String, dynamic>) {
+      return item;
+    }
+
+    if (item is Map) {
+      return Map<String, dynamic>.from(item);
+    }
+
+    throw const FormatException('Evento invalido');
   }
 }

@@ -1,6 +1,6 @@
 import '../core/json_reader.dart';
 
-/// Representa um evento acadêmico exibido e manipulado no app.
+/// Representa um evento acadêmico usado nas telas e nos serviços.
 class Evento {
   const Evento({
     required this.id,

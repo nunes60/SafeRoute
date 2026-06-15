@@ -17,7 +17,9 @@ class LoginPage extends StatefulWidget {
 
 /// Controla o preenchimento, validação e submissão do login.
 class _LoginPageState extends State<LoginPage> {
+  // Chave usada para disparar validações do Form inteiro.
   final _formKey = GlobalKey<FormState>();
+  // Controllers permitem ler/alterar o texto digitado nos campos.
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _authService = AuthService();
@@ -33,6 +35,7 @@ class _LoginPageState extends State<LoginPage> {
       return 'Erro inesperado ao autenticar.';
     }
 
+    // Remove prefixos técnicos comuns para não poluir a mensagem final.
     const prefixes = <String>[
       'Exception: ',
       'ClientException: ',
@@ -55,6 +58,7 @@ class _LoginPageState extends State<LoginPage> {
         : message.trim();
     final colorScheme = Theme.of(context).colorScheme;
 
+    // Também salva no estado para exibir bloco de erro dentro do formulário.
     setState(() {
       _submitError = errorMessage;
     });
@@ -98,14 +102,19 @@ class _LoginPageState extends State<LoginPage> {
 
   /// Envia as credenciais, trata feedbacks e navega após o login.
   Future<void> _submit() async {
+    // Fecha teclado para melhorar a percepção de envio.
     FocusScope.of(context).unfocus();
-    if (!_formKey.currentState!.validate()) {
+
+    // currentState pode ser nulo em ciclo de vida, então validamos sem usar !.
+    final formState = _formKey.currentState;
+    if (formState == null || !formState.validate()) {
       return;
     }
 
     final email = _emailController.text.trim();
     final senha = _passwordController.text;
 
+    // Travamos botão/campos até a operação terminar.
     setState(() {
       _isLoading = true;
       _submitError = null;
@@ -114,10 +123,12 @@ class _LoginPageState extends State<LoginPage> {
     try {
       final auth = await _authService.signIn(email: email, senha: senha);
 
+      // Depois de await, só mexe na UI se a tela ainda estiver montada.
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(auth.message)));
+      // Pequeno atraso para o usuário ver a confirmação antes da troca de tela.
       await Future.delayed(AppStyles.feedbackDelay);
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, homeRoute);
@@ -214,6 +225,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                 ),
+                // Exibe erro em linha para ficar visível mesmo sem snackbar.
                 if (_submitError != null) ...[
                   AppStyles.gap16,
                   Container(

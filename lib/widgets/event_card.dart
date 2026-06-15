@@ -45,6 +45,7 @@ class EventCard extends StatelessWidget {
                   strokeWidth: AppStyles.busyIndicatorStrokeWidth,
                 ),
               )
+            // Quando não está ocupado, exibe menu de ações do item.
             : PopupMenuButton<EventCardAction>(
                 tooltip: 'Ações do evento',
                 onSelected: onSelectedAction,

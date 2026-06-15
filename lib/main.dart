@@ -9,7 +9,9 @@ import 'telas/telas.dart';
 
 /// Inicializa dependências globais e inicia a aplicação Flutter.
 Future<void> main() async {
+  // Necessário antes de qualquer await/plugin no main.
   WidgetsFlutterBinding.ensureInitialized();
+  // Carrega símbolos de data do locale pt-BR para formatadores do pacote intl.
   await initializeDateFormatting('pt_BR');
   runApp(const SafeRouteApp());
 }
@@ -36,6 +38,7 @@ class SafeRouteApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return DynamicColorBuilder(
       builder: (lightDynamicColor, darkDynamicColor) {
+        // MaterialApp concentra navegação, tema, localização e rota inicial.
         return MaterialApp(
           title: 'SafeRoute',
           debugShowCheckedModeBanner: false,
@@ -69,6 +72,7 @@ class AppStartScreen extends StatelessWidget {
     return FutureBuilder<bool>(
       future: SessionService.hasSession(),
       builder: (context, snapshot) {
+        // Enquanto a leitura local não termina, mostra estado de espera.
         if (snapshot.connectionState != ConnectionState.done) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),

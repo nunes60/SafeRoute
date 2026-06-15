@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
-/// Reúne medidas, espaçamentos e tamanhos reutilizados no app.
+/// Reúne medidas e espaçamentos reutilizados para manter consistência visual.
 class AppStyles {
   const AppStyles._();
 
+  // Breakpoints de responsividade.
   static const double tabletBreakpoint = 720;
   static const double desktopBreakpoint = 1024;
 
+  // Limites máximos para conteúdo principal.
   static const double contentMaxWidth = 420;
   static const double contentMaxWidthMedium = 720;
   static const double contentMaxWidthWide = 840;
@@ -15,6 +17,8 @@ class AppStyles {
   static const double listMaxWidthWide = 1120;
   static const double splitLayoutBreakpoint = 760;
   static const double actionWrapBreakpoint = 560;
+
+  // Raios e detalhes de componentes.
   static const double inputRadius = 16;
   static const double buttonRadius = 16;
   static const double focusedBorderWidth = 1.5;
@@ -23,6 +27,7 @@ class AppStyles {
   static const double itemSpacing = 16;
   static const double actionSpacing = 12;
 
+  // Escala base de espaçamento externo por tipo de tela.
   static const double pagePaddingCompact = 16;
   static const double pagePaddingRegular = 24;
   static const double pagePaddingWide = 32;
@@ -30,6 +35,7 @@ class AppStyles {
   static const Size buttonMinimumSize = Size.fromHeight(48);
   static const Size dialogActionMinimumSize = Size(0, 48);
 
+  // Insets reutilizados para manter consistência de layout.
   static const EdgeInsets pagePadding = EdgeInsets.all(20);
   static const EdgeInsets sectionPadding = EdgeInsets.all(16);
   static const EdgeInsets listPadding = EdgeInsets.all(16);
@@ -45,6 +51,7 @@ class AppStyles {
     horizontal: 16,
   );
 
+  // Espaços verticais/horizontais prontos para composição rápida de UI.
   static const SizedBox gap4 = SizedBox(height: 4);
   static const SizedBox gap8 = SizedBox(height: 8);
   static const SizedBox gap12 = SizedBox(height: 12);
@@ -62,5 +69,6 @@ class AppStyles {
   static const double titleSize = 20;
   static const double subtitleSize = 16;
 
+  // Pequeno atraso usado para feedback visual antes de navegação.
   static const Duration feedbackDelay = Duration(milliseconds: 350);
 }

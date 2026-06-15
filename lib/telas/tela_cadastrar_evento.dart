@@ -20,6 +20,7 @@ class CadastrarEventoScreen extends StatefulWidget {
 
 /// Gerencia os campos, a data escolhida e o envio do formulário.
 class _CadastrarEventoScreenState extends State<CadastrarEventoScreen> {
+  // Chave para validar todos os campos do formulário.
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _disciplinaController = TextEditingController();
   final TextEditingController _atividadeController = TextEditingController();
@@ -29,6 +30,7 @@ class _CadastrarEventoScreenState extends State<CadastrarEventoScreen> {
   DateTime _selectedDate = DateTime.now();
   bool _isSaving = false;
 
+  // Atalho para simplificar leituras do modo atual da tela.
   bool get _isEditing => widget.evento != null;
 
   @override
@@ -36,9 +38,13 @@ class _CadastrarEventoScreenState extends State<CadastrarEventoScreen> {
   void initState() {
     super.initState();
     if (_isEditing) {
-      _disciplinaController.text = widget.evento!.nomeDisciplina;
-      _atividadeController.text = widget.evento!.descricaoAtividade;
-      _selectedDate = widget.evento!.dataEntrega;
+      // Como _isEditing depende de evento != null, usamos variável local aqui.
+      final evento = widget.evento;
+      if (evento != null) {
+        _disciplinaController.text = evento.nomeDisciplina;
+        _atividadeController.text = evento.descricaoAtividade;
+        _selectedDate = evento.dataEntrega;
+      }
     }
     _syncSelectedDate();
   }
@@ -99,6 +105,7 @@ class _CadastrarEventoScreenState extends State<CadastrarEventoScreen> {
   Widget _buildActionButtons() {
     return LayoutBuilder(
       builder: (context, constraints) {
+        // Em telas largas, botões lado a lado; em telas estreitas, empilhados.
         final useTwoColumns =
             constraints.maxWidth >= AppStyles.actionWrapBreakpoint;
         final buttonWidth = useTwoColumns
@@ -144,10 +151,14 @@ class _CadastrarEventoScreenState extends State<CadastrarEventoScreen> {
   /// Valida o formulário e envia os dados para criação ou edição.
   Future<void> _saveEvent() async {
     FocusScope.of(context).unfocus();
-    if (!_formKey.currentState!.validate()) {
+
+    // Evita o uso do operador "!" no estado do formulário.
+    final formState = _formKey.currentState;
+    if (formState == null || !formState.validate()) {
       return;
     }
 
+    // Evita gravar espaços desnecessários no início/fim dos campos.
     final nomeDisciplina = _disciplinaController.text.trim();
     final descricaoAtividade = _atividadeController.text.trim();
 
@@ -157,8 +168,13 @@ class _CadastrarEventoScreenState extends State<CadastrarEventoScreen> {
 
     try {
       if (_isEditing) {
+        final evento = widget.evento;
+        if (evento == null) {
+          throw const FormatException('Evento ausente para edicao.');
+        }
+
         await _eventService.editarEvento(
-          eventoId: widget.evento!.id,
+          eventoId: evento.id,
           nomeDisciplina: nomeDisciplina,
           descricaoAtividade: descricaoAtividade,
           dataEntrega: _toApiDate(_selectedDate),
@@ -171,7 +187,9 @@ class _CadastrarEventoScreenState extends State<CadastrarEventoScreen> {
         );
       }
 
+      // Proteção de ciclo de vida: só mexe na UI se a tela ainda existir.
       if (!mounted) return;
+      // Feedback imediato confirma ao usuário que a operação concluiu.
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(

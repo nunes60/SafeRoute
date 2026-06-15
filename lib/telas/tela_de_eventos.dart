@@ -22,6 +22,7 @@ class EventListScreen extends StatefulWidget {
 /// Controla carregamento, atualização e exclusão na lista de eventos.
 class _EventListScreenState extends State<EventListScreen> with RouteAware {
   final _eventService = EventService();
+  // ids em processamento para impedir ações repetidas no mesmo item.
   final Set<int> _busyEventIds = <int>{};
   PageRoute<dynamic>? _route;
   bool _isLoading = true;
@@ -64,6 +65,7 @@ class _EventListScreenState extends State<EventListScreen> with RouteAware {
 
   /// Busca todos os eventos e atualiza os estados de carregamento e erro.
   Future<void> _loadEvents() async {
+    // Primeiro estado da requisição: limpa erro e mostra loading.
     setState(() {
       _isLoading = true;
       _error = null;
@@ -109,6 +111,7 @@ class _EventListScreenState extends State<EventListScreen> with RouteAware {
 
     if (!shouldDelete || !mounted) return;
 
+    // Marca o item como ocupado para mostrar indicador no card.
     setState(() {
       _busyEventIds.add(event.id);
     });
@@ -120,6 +123,7 @@ class _EventListScreenState extends State<EventListScreen> with RouteAware {
 
       if (!mounted) return;
 
+      // Fallback: se API não devolveu id, removemos pelo id original.
       final removedEventId = deletedEventId == 0 ? event.id : deletedEventId;
       setState(() {
         _busyEventIds.remove(event.id);
@@ -178,6 +182,7 @@ class _EventListScreenState extends State<EventListScreen> with RouteAware {
         builder: (context, constraints) {
           final columns = AppLayout.eventColumnsForWidth(constraints.maxWidth);
 
+          // Celular: lista vertical tradicional.
           if (columns == 1) {
             return ListView.separated(
               padding: EdgeInsets.zero,
@@ -190,7 +195,8 @@ class _EventListScreenState extends State<EventListScreen> with RouteAware {
             );
           }
 
-          final itemWidth =
+            // Tablet/desktop: grade em wrap para ocupar melhor o espaço.
+            final itemWidth =
               (constraints.maxWidth - AppStyles.itemSpacing) / columns;
 
           return ListView(

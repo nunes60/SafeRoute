@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 import 'app_styles.dart';
 
-/// Define os limites de largura usados pelos layouts reutilizáveis.
+/// Define presets de largura para não espalhar números mágicos nas telas.
 enum AppLayoutWidth { form, content, list }
 
-/// Aplica padding e largura máximos consistentes para as telas do app.
+/// Aplica padding e largura máxima de forma responsiva ao conteúdo da tela.
 class AppLayout extends StatelessWidget {
   const AppLayout({
     super.key,
@@ -22,7 +22,7 @@ class AppLayout extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   final AlignmentGeometry alignment;
 
-  /// Informa se a largura atual corresponde a uma tela compacta.
+  /// Retorna true quando a janela está em largura compacta.
   static bool isCompact(BuildContext context) {
     return MediaQuery.sizeOf(context).width < AppStyles.tabletBreakpoint;
   }
@@ -32,7 +32,7 @@ class AppLayout extends StatelessWidget {
     return MediaQuery.sizeOf(context).width >= AppStyles.desktopBreakpoint;
   }
 
-  /// Retorna o padding padrão da página com base na largura disponível.
+  /// Calcula o padding padrão de página com base na largura disponível.
   static EdgeInsets pagePadding(BuildContext context) {
     return pagePaddingForWidth(MediaQuery.sizeOf(context).width);
   }
@@ -52,7 +52,7 @@ class AppLayout extends StatelessWidget {
     return EdgeInsets.symmetric(horizontal: horizontal, vertical: vertical);
   }
 
-  /// Resolve a largura máxima de conteúdo para cada preset de layout.
+  /// Resolve a largura máxima de conteúdo para cada preset.
   static double maxWidthFor(double width, AppLayoutWidth preset) {
     switch (preset) {
       case AppLayoutWidth.form:
@@ -74,7 +74,7 @@ class AppLayout extends StatelessWidget {
     }
   }
 
-  /// Define quantas colunas a lista de eventos deve exibir nessa largura.
+  /// Define 1 ou 2 colunas para os cards de evento conforme a largura.
   static int eventColumnsForWidth(double width) {
     if (width >= AppStyles.splitLayoutBreakpoint) {
       return 2;
@@ -101,6 +101,7 @@ class AppLayout extends StatelessWidget {
           ),
         );
 
+        // Quando precisa rolar, o mesmo conteúdo é embrulhado em scroll.
         if (scrollable) {
           return SingleChildScrollView(
             padding: resolvedPadding,

@@ -6,7 +6,7 @@ class BrDateFormatter {
 
   static final DateFormat _shortDateFormat = DateFormat('dd/MM/yyyy', 'pt_BR');
 
-  /// Converte uma data para o formato curto exibido nas telas.
+  /// Converte uma data para o formato curto exibido nas telas (dd/MM/yyyy).
   static String formatShort(DateTime date) {
     return _shortDateFormat.format(date);
   }

@@ -23,6 +23,7 @@ class WelcomeScreen extends StatefulWidget {
 /// Controla o carregamento, atualização e ações dos eventos destacados.
 class _WelcomeScreenState extends State<WelcomeScreen> with RouteAware {
   final _eventService = EventService();
+  // Guarda ids em operação para bloquear clique duplo durante exclusão.
   final Set<int> _busyEventIds = <int>{};
   PageRoute<dynamic>? _route;
   late Future<List<Evento>> _highlightsFuture;
@@ -43,6 +44,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with RouteAware {
       if (_route != null) {
         appRouteObserver.unsubscribe(this);
       }
+      // RouteAware permite reagir quando outra tela fecha e voltamos para cá.
       appRouteObserver.subscribe(this, route);
       _route = route;
     }
@@ -63,6 +65,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with RouteAware {
 
   /// Busca os próximos eventos usados no bloco de destaques.
   Future<List<Evento>> _loadHighlights() async {
+    // Limite baixo para manter home enxuta e rápida.
     return _eventService.listEventos(limit: 3);
   }
 
@@ -92,6 +95,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with RouteAware {
 
     if (!shouldDelete || !mounted) return;
 
+    // Marca o card como ocupado (spinner no lugar do menu de ações).
     setState(() {
       _busyEventIds.add(event.id);
     });
@@ -139,6 +143,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with RouteAware {
       builder: (context, constraints) {
         final columns = AppLayout.eventColumnsForWidth(constraints.maxWidth);
 
+        // Em telas estreitas, uma coluna vertical melhora legibilidade.
         if (columns == 1) {
           return Column(
             children: [
@@ -168,6 +173,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with RouteAware {
           );
         }
 
+        // Em telas largas, usamos Wrap para "quebrar" em grade flexível.
         final itemWidth =
             (constraints.maxWidth - AppStyles.itemSpacing) / columns;
 
@@ -206,6 +212,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with RouteAware {
   Widget _buildActionButtons() {
     return LayoutBuilder(
       builder: (context, constraints) {
+        // Botões lado a lado só quando há espaço horizontal suficiente.
         final useTwoColumns =
             constraints.maxWidth >= AppStyles.actionWrapBreakpoint;
         final buttonWidth = useTwoColumns

@@ -7,7 +7,7 @@ import 'api_exception.dart';
 import 'api_support.dart';
 import 'session_service.dart';
 
-/// Centraliza a autenticação do usuário e a abertura da sessão local.
+/// Centraliza autenticação remota e abertura da sessão local.
 class AuthService {
   AuthService({http.Client? client}) : _client = client ?? http.Client();
 
@@ -33,6 +33,7 @@ class AuthService {
     }
 
     try {
+      // Converte o payload da API para um model tipado.
       return AuthResponse.fromJson(data);
     } on FormatException {
       throw ApiException(

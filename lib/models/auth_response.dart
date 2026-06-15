@@ -1,6 +1,6 @@
 import '../core/json_reader.dart';
 
-/// Representa os dados retornados após uma autenticação bem-sucedida.
+/// Representa os dados de autenticação que o app realmente usa.
 class AuthResponse {
   const AuthResponse({
     required this.userId,
